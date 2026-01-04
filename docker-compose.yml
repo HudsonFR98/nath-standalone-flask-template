@@ -18,7 +18,7 @@ services:
     volumes:
       - ./:/opt/nath_standalone_flask_template:cached
       - app_logs:/var/log/nath_standalone_flask_template
-      - backup_data:/var/backup
+      - ./backups:/var/backup
     restart: always
     networks:
       - nsft_network_dev
@@ -68,12 +68,6 @@ volumes:
       type: none
       o: bind
       device: ./logs
-  backup_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./backups
 networks:
   nsft_network_dev:
     driver: bridge

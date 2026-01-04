@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+- your coding shall follow Object-oriented programming the most possible
+- codebase shall be ready for translation. (babel)
+- you shall never apply migrations yourself. However, you are authorized to add or edit a new migration file into alembic/version directory.
+- database interaction code shall be in dao directory.
+- if you need to create new reusable modules, place them in the lib directory. Most of the codebase shall be there.
+- css, javascript an other statics shall be in static directory
