@@ -12,28 +12,60 @@ stages:
   script:
     - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
 
+.retry_pull_function: &retry_pull_function
+  - |
+    retry_pull() {
+      local img=$1
+      local retries=3
+      local count=0
+      until docker pull "$img"; do
+        count=$((count+1))
+        if [ $count -ge $retries ]; then
+          echo "❌ Failed to pull $img after $retries attempts."
+          exit 1
+        fi
+        echo "⚠️ Retry $count/$retries for $img..."
+        sleep 5
+      done
+      echo "✅ Pulled $img successfully!"
+    }
+
 
 populate_dependency_proxy:
   stage: populate-proxy
   image: docker:28.1.1
   before_script:
+    # Log in to your GitLab dependency proxy
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
-    - echo "Populating dependency proxy with nath used images..."
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nginx:alpine
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/redis:7-alpine
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/alpine:latest
-    - echo "Dependency proxy population completed!"
+    - *retry_pull_function
+    - |
+      echo "Populating dependency proxy with nath used images..."
+
+      # List of images to populate
+      IMAGES=(
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nginx:alpine"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/redis:7-alpine"
+        "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/alpine:latest"
+      )
+
+      # Pull each image with retry
+      for img in "${IMAGES[@]}"; do
+        retry_pull "$img"
+      done
+
+      echo "🎉 Dependency proxy population completed!"
   only:
     - master
     - tags
   when: manual
   tags:
     - docker
+
 
 build_docker:
   stage: docker
