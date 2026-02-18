@@ -1,4 +1,5 @@
 variables:
+  DOCKER_VERSION: "27.5.1"
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
 stages:
@@ -15,44 +16,18 @@ stages:
 
 populate_dependency_proxy:
   stage: populate-proxy
-  image: docker:28.1.1
+  image: docker:${DOCKER_VERSION}
   before_script:
-    - echo "Debug: CI_DEPENDENCY_PROXY_SERVER=${CI_DEPENDENCY_PROXY_SERVER}"
-    - echo "Debug: CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX=${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}"
-    # Ensure protocol is included in dependency proxy server URL
-    - |
-      if [[ ! "$CI_DEPENDENCY_PROXY_SERVER" =~ ^https?:// ]]; then
-        export CI_DEPENDENCY_PROXY_SERVER="http://${CI_DEPENDENCY_PROXY_SERVER}"
-        echo "Added http:// prefix: CI_DEPENDENCY_PROXY_SERVER=${CI_DEPENDENCY_PROXY_SERVER}"
-      fi
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - echo "Populating dependency proxy with nath used images..."
-    - |
-      pull_image() {
-        local image=$1
-        local proxy_image="${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/${image}"
-        echo "Attempting to pull ${proxy_image}..."
-        
-        # Try pulling from dependency proxy
-        if docker pull "${proxy_image}" 2>&1; then
-          echo "✓ Successfully pulled ${image} from dependency proxy"
-          return 0
-        else
-          local exit_code=$?
-          echo "✗ Failed to pull ${image} from dependency proxy (exit code: ${exit_code})"
-          echo "This might indicate the dependency proxy needs to be configured or the image path is incorrect."
-          echo "The dependency proxy should automatically cache images from Docker Hub on first pull."
-          return ${exit_code}
-        fi
-      }
-    - pull_image "python:3.11-slim" || echo "Continuing despite error..."
-    - pull_image "docker:28.1.1" || echo "Continuing despite error..."
-    - pull_image "docker:28.1.1-dind" || echo "Continuing despite error..."
-    - pull_image "postgres:15" || echo "Continuing despite error..."
-    - pull_image "nginx:alpine" || echo "Continuing despite error..."
-    - pull_image "redis:7-alpine" || echo "Continuing despite error..."
-    - pull_image "alpine:latest" || echo "Continuing despite error..."
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}-dind
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nginx:alpine
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/redis:7-alpine
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/alpine:latest
     - echo "Dependency proxy population completed!"
   only:
     - master
@@ -63,14 +38,9 @@ populate_dependency_proxy:
 
 build_docker:
   stage: docker
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Ensure protocol is included in dependency proxy server URL
-    - |
-      if [[ ! "$CI_DEPENDENCY_PROXY_SERVER" =~ ^https?:// ]]; then
-        export CI_DEPENDENCY_PROXY_SERVER="http://${CI_DEPENDENCY_PROXY_SERVER}"
-      fi
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - docker info
