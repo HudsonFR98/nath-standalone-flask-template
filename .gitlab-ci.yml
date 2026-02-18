@@ -13,29 +13,48 @@ stages:
     - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
 
 
-populate_dependency_proxy:
+bootstrap_dependency_proxy:
   stage: populate-proxy
   image: docker:28.1.1
   variables:
+    # Point to your self-hosted registry with port 5050
     CI_DEPENDENCY_PROXY_SERVER: "gitlab.nath-server.home:5050"
     CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
   before_script:
+    # Login to your GitLab registry / dependency proxy
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
-    - echo "Populating dependency proxy with nath used images..."
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/python:3.11-slim
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/docker:28.1.1
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/postgres:15
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/nginx:alpine
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/redis:7-alpine
-    - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/alpine:latest
-    - echo "Dependency proxy population completed!"
+    - echo "Bootstrapping dependency proxy with commonly used images..."
+    
+    # List of upstream images to cache
+    - export IMAGES="python:3.11-slim docker:28.1.1 postgres:15 nginx:alpine redis:7-alpine alpine:latest"
+    
+    # Loop over images and pull through dependency proxy
+    - |
+      for img in $IMAGES; do
+        echo "Processing $img..."
+        # Construct full proxy path
+        PROXY_IMG="$CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/$(echo $img | cut -d: -f1):$(echo $img | cut -d: -f2)"
+        # Pull via dependency proxy (GitLab will auto-cache if image exists upstream)
+        docker pull $PROXY_IMG || {
+          echo "Proxy cache miss for $img — pulling upstream directly and retrying..."
+          # Pull from Docker Hub
+          docker pull $img
+          # Tag it for proxy path
+          docker tag $img $PROXY_IMG
+          # Attempt push — may fail if GitLab blocks write (CE/EE behavior)
+          docker push $PROXY_IMG || echo "Push to proxy blocked — first CI pull will auto-cache"
+        }
+      done
+
+    - echo "Dependency proxy bootstrap complete!"
   only:
     - master
     - tags
   when: manual
   tags:
     - docker
+
 
 
 
