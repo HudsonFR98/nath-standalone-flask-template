@@ -20,18 +20,13 @@ populate_dependency_proxy:
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - echo "Populating dependency proxy with nath used images..."
-    - docker pull python:3.11-slim
-    - docker tag python:3.11-slim ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
-    - docker push ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
-    - docker pull docker:28.1.1
-    - docker tag docker:28.1.1 ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
-    - docker push ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
-    - docker pull docker:28.1.1-dind
-    - docker tag docker:28.1.1-dind ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
-    - docker push ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
-    - docker pull postgres:15
-    - docker tag postgres:15 ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
-    - docker push ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nginx:alpine
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/redis:7-alpine
+    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/alpine:latest
     - echo "Dependency proxy population completed!"
   only:
     - master
@@ -39,7 +34,6 @@ populate_dependency_proxy:
   when: manual
   tags:
     - docker
-    
 
 build_docker:
   stage: docker
