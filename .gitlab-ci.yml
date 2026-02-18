@@ -1,5 +1,4 @@
 variables:
-  DOCKER_VERSION: "27.5.1"
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
 stages:
@@ -16,18 +15,17 @@ stages:
 
 populate_dependency_proxy:
   stage: populate-proxy
-  image: docker:${DOCKER_VERSION}
+  image: docker:28.1.1
   before_script:
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - echo "Populating dependency proxy with nath used images..."
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}-dind
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nginx:alpine
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/redis:7-alpine
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/alpine:latest
+    - docker pull python:3.11-slim
+    - docker pull docker:28.1.1
+    - docker pull postgres:15
+    - docker pull nginx:alpine
+    - docker pull redis:7-alpine
+    - docker pull alpine:latest
     - echo "Dependency proxy population completed!"
   only:
     - master
@@ -38,7 +36,7 @@ populate_dependency_proxy:
 
 build_docker:
   stage: docker
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:${DOCKER_VERSION}
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
