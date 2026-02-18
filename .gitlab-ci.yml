@@ -19,6 +19,8 @@ populate_dependency_proxy:
   before_script:
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
+    - echo "CI_DEPENDENCY_PROXY_SERVER=$CI_DEPENDENCY_PROXY_SERVER"
+    - echo "CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX=$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX"
     - echo "Pulling images through dependency proxy..."
     - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/python:3.11-slim
     - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/docker:28.1.1
@@ -33,6 +35,7 @@ populate_dependency_proxy:
   when: manual
   tags:
     - docker
+
 
 build_docker:
   stage: docker
