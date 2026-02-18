@@ -1,5 +1,7 @@
 variables:
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  CI_DEPENDENCY_PROXY_SERVER: "gitlab.nath-server.home:5050"
+  CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
 
 stages:
   - populate-proxy
@@ -16,11 +18,12 @@ stages:
 populate_dependency_proxy:
   stage: populate-proxy
   image: docker:28.1.1
+  variables:
+    CI_DEPENDENCY_PROXY_SERVER: "gitlab.nath-server.home:5050"
+    CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
   before_script:
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
-    - echo "CI_DEPENDENCY_PROXY_SERVER=$CI_DEPENDENCY_PROXY_SERVER"
-    - echo "CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX=$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX"
     - echo "Pulling images through dependency proxy..."
     - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/python:3.11-slim
     - docker pull $CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/docker:28.1.1
