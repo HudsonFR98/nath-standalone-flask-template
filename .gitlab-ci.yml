@@ -1,7 +1,7 @@
 variables:
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   CI_DEPENDENCY_PROXY_SERVER: "gitlab.nath-server.home:5050"
-  CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
+  CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "gitlab.nath-server.home:5050/homelab/dependency_proxy/containers"
 
 stages:
   - docker
