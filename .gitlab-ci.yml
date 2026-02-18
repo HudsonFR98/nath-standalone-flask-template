@@ -21,21 +21,12 @@ populate_dependency_proxy:
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
   script:
     - |
-      #!/bin/bash
       echo "Populating project registry with images used in CI..."
-
-      # List of upstream images to preload
-      IMAGES=(
-        "python:3.11-slim"
-        "docker:28.1.1"
-        "docker:28.1.1-dind"
-        "postgres:15"
-        "nginx:alpine"
-        "redis:7-alpine"
-        "alpine:latest"
-      )
-
-      for img in "${IMAGES[@]}"; do
+      
+      # List of upstream images to preload (space-separated for POSIX compatibility)
+      IMAGES="python:3.11-slim docker:28.1.1 docker:28.1.1-dind postgres:15 nginx:alpine redis:7-alpine alpine:latest"
+      
+      for img in $IMAGES; do
         target="$CI_REGISTRY_IMAGE/${img#*/}"
         echo "Pulling $img from Docker Hub..."
         docker pull "$img"
@@ -44,7 +35,7 @@ populate_dependency_proxy:
         echo "Pushing $target to project registry..."
         docker push "$target"
       done
-
+      
       echo "✅ Project registry population completed!"
   only:
     - master
