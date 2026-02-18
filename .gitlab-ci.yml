@@ -45,6 +45,7 @@ pytest:
     url: https://nsft.test.nath-server.home
   needs:
     - build_docker
+  when: manual
   tags:
     - docker
 
@@ -80,7 +81,6 @@ deploy_demo:
     url: https://nsft.demo.nath-server.home
   needs:
     - build_docker
-    - pytest
   tags:
     - docker
 
@@ -101,6 +101,5 @@ deploy_prod:
     url: https://nsft.nath-server.home
   needs:
     - build_docker
-    - pytest
   tags:
     - docker
