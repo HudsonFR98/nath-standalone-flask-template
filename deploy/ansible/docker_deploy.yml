@@ -3,11 +3,11 @@
 
 - name: Deploy nath_standalone_flask_template using Docker
   hosts: "{{ target_host }}"
-  remote_user: nath
+  remote_user: root
   become: yes
   vars:
-    action: "{{ action | default('deploy') }}"
-    context: "{{ context | default('demo') }}"
+    action: "{{ action }}"
+    context: "{{ context }}"
     docker_image: "{{ docker_image }}"
     app_name: "nsft"  # Short name for nath_standalone_flask_template
     container_name: "{{ app_name }}_app_{{ context }}"
@@ -15,7 +15,24 @@
     db_container_name: "{{ app_name }}_db_{{ context }}"
     redis_container_name: "{{ app_name }}_redis_{{ context }}"
     network_name: "{{ app_name }}_network_{{ context }}"
-    db_host: "{{ db_host | default('localhost') }}"
+    db_host: "{{ db_host }}"
+
+  pre_tasks:
+    - name: Build environment configuration
+      set_fact:
+        env_config:
+          pg_user: "{{ lookup('vars', 'postgres_user') }}"
+          pg_password: "{{ lookup('vars', context + '_postgres_password') }}"
+          pg_db: "{{ lookup('vars', 'postgres_db') }}"
+          nsft_db_name: "{{ lookup('vars', context + '_nsft_db_name') }}"
+          secret_key: "{{ lookup('vars', context + '_secret_key') }}"
+          telegram_bot_token: "{{ lookup('vars', context + '_telegram_bot_token') }}"
+          telegram_chat_id: "{{ lookup('vars', context + '_telegram_chat_id') }}"
+          admin_user_username: "{{ lookup('vars', 'admin_user_username') }}"
+          admin_user_password: "{{ lookup('vars', context + '_admin_user_password') }}"
+          admin_user_first_name: "{{ lookup('vars', 'admin_user_first_name') }}"
+          admin_user_last_name: "{{ lookup('vars', 'admin_user_last_name') }}"
+          admin_user_email: "{{ lookup('vars', 'admin_user_email') }}"
 
   roles:
     - docker

@@ -5,16 +5,17 @@
   file:
     path: "{{ item }}"
     state: directory
-    owner: nath
-    group: nath
+    owner: root
+    group: root
     mode: '0755'
   with_items:
     - /var/log/nath_standalone_flask_template
+    - /var/backups/nath_standalone_flask_template
     - /opt/nath_standalone_flask_template_data
+    - /opt/nath_standalone_flask_template_data/postgresql/15/main
     - /var/log/nginx
     - /etc/letsencrypt
     - /var/www/html
-    - /var/backup
 - name: Set log directory permissions for Docker container
   file:
     path: /var/log/nath_standalone_flask_template
@@ -41,6 +42,15 @@
     mode: '0775'
     recurse: yes
 
+- name: Set PostgreSQL data directory permissions
+  file:
+    path: /opt/nath_standalone_flask_template_data/postgresql/15/main
+    state: directory
+    owner: "999"  # UID of postgres user in container
+    group: "999"  # GID of postgres user in container
+    mode: '0775'
+    recurse: yes
+
 - name: Set Nginx log directory permissions
   file:
     path: /var/log/nginx
@@ -52,7 +62,7 @@
 
 - name: Set backup directory permissions for Docker container
   file:
-    path: /var/backup
+    path: /var/backups/nath_standalone_flask_template
     state: directory
     owner: "1000"
     group: "1000"

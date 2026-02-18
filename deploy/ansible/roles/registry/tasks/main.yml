@@ -3,7 +3,7 @@
 
 - name: Log in to GitLab Container Registry
   docker_login:
-    registry: "{{ container_registry_server | default('serv-gitlab.igbmc.u-strasbg.fr:5050') }}"
+    registry: "{{ container_registry_server }}"
     username: "{{ registry_username }}"
     password: "{{ registry_password }}"
     state: present
@@ -11,8 +11,8 @@
 
 - name: Log in to GitLab Dependency Proxy
   docker_login:
-    registry: "{{ dependency_proxy_server | default('gitlab.igbmc.u-strasbg.fr:443') }}"
-    username: "{{ dependency_proxy_username | default(registry_username) }}"
-    password: "{{ dependency_proxy_password | default(registry_password) }}"
+    registry: "{{ dependency_proxy_server }}"
+    username: "{{ dependency_proxy_username }}"
+    password: "{{ dependency_proxy_password }}"
     state: present
     reauthorize: yes 

@@ -99,6 +99,32 @@ def setup_logging():
 # Set up logging when module is imported
 setup_logging()
 
+def require_env(name: str) -> str:
+    """
+    Return required env var value
+    Raises a clear error if missing/empty.
+    """
+    value = os.environ.get(name)
+    if value is None or str(value).strip() == "":
+        raise RuntimeError(f"La variable d'environnement {name} n'est pas renseignée")
+    return value
+
+
+def build_db_uri() -> str:
+    """
+    Build SQLAlchemy DB URI from environment variables
+    Required:
+      - DB_IP
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - NSFT_DB_NAME
+    """
+    host = require_env("DB_IP")
+    user = require_env("POSTGRES_USER")
+    password = require_env("POSTGRES_PASSWORD")
+    db_name = require_env("NSFT_DB_NAME")
+    return f"postgresql://{user}:{password}@{host}/{db_name}"
+
 
 class Config(object):
     """
@@ -114,12 +140,15 @@ class Config(object):
     EMAIL_DEV = 'natha.debanne@gmail.com'
     SETTINGS = None
     STATIC_URI = '/static'
-    SECRET_KEY = 'rzfrfr55eeee85s6zzjkncw###hjciksd'
-    APP_NAME = 'Nath Standalone Flask Template'
+    SECRET_KEY = require_env('SECRET_KEY')
 
     # Telegram notification settings
     TELEGRAM_BOT_TOKEN = "7237344537:AAF2dpUWEChJZz9q2X36smwX-5-7xsk51gw"
     TELEGRAM_CHAT_ID = "6440591299"
+    # Database (same building blocks in all contexts; DB host differs via DB_IP)
+    DB_URI = build_db_uri()
+    SQLALCHEMY_DATABASE_URI = DB_URI
+
 
     # (Legacy) Email settings kept for backward compatibility, no longer used for errors
     ERROR_EMAIL_FROM = ''
@@ -153,8 +182,6 @@ class Config(object):
 class ProdConfig(Config):
 
     CONTEXT = 'prod'
-    DB_URI = "postgresql://web:nsft2025_x@nsft_db_prod/nsft"
-    SQLALCHEMY_DATABASE_URI = "postgresql://web:nsft2025_x@nsft_db_prod/nsft"
     LOG_LEVEL = logging.ERROR
     
     # Session settings for production (HTTP environment)
@@ -169,8 +196,6 @@ class DevConfig(Config):
     DEBUG = True
     TESTING = False
     LOG_LEVEL = logging.DEBUG
-    DB_URI = "postgresql://web:nsft2025_x@nsft_db_dev/nsft"
-    SQLALCHEMY_DATABASE_URI = "postgresql://web:nsft2025_x@nsft_db_dev/nsft"
     PRESERVE_CONTEXT_ON_EXCEPTION = False  # Helps with better error reporting
     
     # Enable Flask's debug toolbar
@@ -185,8 +210,6 @@ class DevConfig(Config):
 class DemoConfig(Config):
 
     CONTEXT = 'demo'
-    DB_URI = "postgresql://web:nsft2025_x@nsft_db_demo/nsft"
-    SQLALCHEMY_DATABASE_URI = "postgresql://web:nsft2025_x@nsft_db_demo/nsft"
     LOG_LEVEL = logging.ERROR
     
     # Session settings for demo (HTTP environment)
@@ -200,8 +223,6 @@ class TestConfig(Config):
     CONTEXT = 'test'
     TESTING = True
     LOG_LEVEL = logging.ERROR
-    DB_URI = "postgresql://web:nsft2025_x@nsft_db_test/nsft"
-    SQLALCHEMY_DATABASE_URI = DB_URI
     SERVER_NAME = 'localhost'
     
     # Session settings for test (HTTP environment)
@@ -210,13 +231,8 @@ class TestConfig(Config):
     SESSION_COOKIE_SAMESITE = 'Lax'  # Changed from 'Strict' to 'Lax' for better compatibility
 
 
-if 'NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT' not in os.environ:
-    raise Exception("La variable d'environnement NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT n'est pas renseignée")
-
-# Updated validation: only dev environment requires DB_IP (external database)
-# test, demo, and prod environments use local Docker container databases
-if os.environ['NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT'] == 'dev' and 'DB_IP' not in os.environ:
-    raise Exception("La variable d'environnement DB_IP n'est pas renseignée pour l'environnement de développement")
+require_env("NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT")
+require_env("DB_IP")
 
 
 _envs = dict(

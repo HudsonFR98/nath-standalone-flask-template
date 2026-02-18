@@ -1,0 +1,87 @@
+services:
+  app:
+    image: {{ docker_image }}
+    container_name: {{ container_name }}
+    restart: always
+    environment:
+      NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: {{ context }}
+      DB_IP: {{ db_container_name }}
+      POSTGRES_USER: {{ env_config.pg_user }}
+      POSTGRES_PASSWORD: {{ env_config.pg_password }}
+      POSTGRES_DB: {{ env_config.pg_db }}
+      NSFT_DB_NAME: {{ env_config.nsft_db_name }}
+      SECRET_KEY: {{ env_config.secret_key }}
+      TELEGRAM_BOT_TOKEN: {{ env_config.telegram_bot_token }}
+      TELEGRAM_CHAT_ID: {{ env_config.telegram_chat_id }}
+      ADMIN_USER_USERNAME: {{ env_config.admin_user_username }}
+      ADMIN_USER_PASSWORD: {{ env_config.admin_user_password }}
+      ADMIN_USER_FIRST_NAME: {{ env_config.admin_user_first_name }}
+      ADMIN_USER_LAST_NAME: {{ env_config.admin_user_last_name }}
+      ADMIN_USER_EMAIL: {{ env_config.admin_user_email }}
+      BUILD_DATE: {{ ansible_date_time.iso8601 | regex_replace('T', '.') | regex_replace(':', '.') | regex_replace('-', '.') | regex_replace('Z', '') }}
+    volumes:
+      - /var/log/nath_standalone_flask_template:/var/log/nath_standalone_flask_template
+      - /opt/nath_standalone_flask_template_data:/opt/nath_standalone_flask_template_data
+      - /var/backups/nath_standalone_flask_template:/var/backup
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nsft_network
+
+  db:
+    image: {{ docker_registry }}/postgres:15
+    container_name: {{ db_container_name }}
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: {{ env_config.pg_user }}
+      POSTGRES_PASSWORD: {{ env_config.pg_password }}
+      POSTGRES_DB: {{ env_config.pg_db }}
+      NSFT_DB_NAME: {{ env_config.nsft_db_name }}
+    volumes:
+      - /opt/nath_standalone_flask_template_data/postgresql/15/main:/var/lib/postgresql/data
+      - /opt/nath_standalone_flask_template_data/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    command: postgres -c 'max_connections=100'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ env_config.pg_user }} -d {{ env_config.nsft_db_name }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nsft_network
+
+  redis:
+    image: {{ docker_registry }}/redis:7-alpine
+    container_name: {{ redis_container_name }}
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nsft_network
+
+  nginx:
+    image: {{ docker_registry }}/nginx:alpine
+    container_name: {{ nginx_container_name }}
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /opt/nath_standalone_flask_template_data/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/log/nginx:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - nsft_network
+
+networks:
+  nsft_network:
+    name: {{ network_name }}
+    driver: bridge
+

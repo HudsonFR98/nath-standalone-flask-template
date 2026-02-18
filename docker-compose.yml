@@ -7,6 +7,8 @@ services:
     container_name: nsft_app_dev
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       - NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev
       - DB_IP=nsft_db_dev
@@ -17,8 +19,10 @@ services:
         condition: service_healthy
     volumes:
       - ./:/opt/nath_standalone_flask_template:cached
-      - app_logs:/var/log/nath_standalone_flask_template
+      - ./logs:/var/log/nath_standalone_flask_template
       - ./backups:/var/backup
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     networks:
       - nsft_network_dev
@@ -26,10 +30,8 @@ services:
   db:
     image: postgres:15
     container_name: nsft_db_dev
-    environment:
-      - POSTGRES_USER=web
-      - POSTGRES_PASSWORD=nsft2025_x
-      - POSTGRES_DB=postgres
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./nath_standalone_flask_template/tests/reset.sql:/docker-entrypoint-initdb.d/init.sql:ro

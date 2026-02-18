@@ -6,7 +6,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description='Deploy nath_standalone_flask_template using Ansible')
-    parser.add_argument('--action', choices=['deploy', 'update'], required=True, help='Action to perform')
+    parser.add_argument('--action', choices=['deploy', 'update'], default='deploy', help='Action to perform')
     parser.add_argument('--env', choices=['test', 'demo', 'prod'], required=True, help='Environment to deploy to')
     parser.add_argument('--docker-image', required=True, help='Docker image to deploy')
     parser.add_argument('--docker-registry', default='registry.gitlab.com', help='Docker registry')
@@ -17,6 +17,20 @@ def main():
     parser.add_argument('--dependency-proxy-username', help='Dependency proxy username')
     parser.add_argument('--dependency-proxy-password', help='Dependency proxy password')
     parser.add_argument('--db-host', default='localhost', help='Database host')
+
+    # Secret variables (from GitLab CI/CD variables) (can be context-specific)
+    parser.add_argument('--postgres-user', help='PostgreSQL user')
+    parser.add_argument('--postgres-password', help='PostgreSQL password')
+    parser.add_argument('--postgres-db', help='PostgreSQL bootstrap DB')
+    parser.add_argument('--nsft-db-name', help='Application database name')
+    parser.add_argument('--secret-key', help='Flask SECRET_KEY')
+    parser.add_argument('--telegram-bot-token', help='Telegram bot token')
+    parser.add_argument('--telegram-chat-id', help='Telegram chat ID')
+    parser.add_argument('--admin-user-username', help='Initial admin username')
+    parser.add_argument('--admin-user-password', help='Initial admin password')
+    parser.add_argument('--admin-user-first-name', help='Initial admin first name')
+    parser.add_argument('--admin-user-last-name', help='Initial admin last name')
+    parser.add_argument('--admin-user-email', help='Initial admin email')
     args = parser.parse_args()
 
     # Set the current directory to the script's directory
@@ -58,6 +72,33 @@ def main():
 
     if args.dependency_proxy_password:
         cmd.extend(['-e', f'dependency_proxy_password={args.dependency_proxy_password}'])
+
+    # Pass variables to Ansible (some are context-specific)
+    context = args.env
+    if args.postgres_user:
+        cmd.extend(['-e', f'postgres_user={args.postgres_user}'])
+    if args.postgres_password:
+        cmd.extend(['-e', f'{context}_postgres_password={args.postgres_password}'])
+    if args.postgres_db:
+        cmd.extend(['-e', f'postgres_db={args.postgres_db}'])
+    if args.nsft_db_name:
+        cmd.extend(['-e', f'{context}_nsft_db_name={args.nsft_db_name}'])
+    if args.secret_key:
+        cmd.extend(['-e', f'{context}_secret_key={args.secret_key}'])
+    if args.telegram_bot_token:
+        cmd.extend(['-e', f'{context}_telegram_bot_token={args.telegram_bot_token}'])
+    if args.telegram_chat_id:
+        cmd.extend(['-e', f'{context}_telegram_chat_id={args.telegram_chat_id}'])
+    if args.admin_user_username:
+        cmd.extend(['-e', f'admin_user_username={args.admin_user_username}'])
+    if args.admin_user_password:
+        cmd.extend(['-e', f'{context}_admin_user_password={args.admin_user_password}'])
+    if args.admin_user_first_name:
+        cmd.extend(['-e', f'admin_user_first_name={args.admin_user_first_name}'])
+    if args.admin_user_last_name:
+        cmd.extend(['-e', f'admin_user_last_name={args.admin_user_last_name}'])
+    if args.admin_user_email:
+        cmd.extend(['-e', f'admin_user_email={args.admin_user_email}'])
 
     # Install Ansible collection
     try:

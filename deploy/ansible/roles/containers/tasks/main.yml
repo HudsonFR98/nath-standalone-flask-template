@@ -1,175 +1,43 @@
 ---
 # Container management tasks
 
-- name: Stop and remove existing containers
-  docker_container:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - "{{ container_name }}"
-    - "{{ nginx_container_name }}"
-    - "{{ redis_container_name }}"
-  ignore_errors: yes
+- name: Render docker-compose file on remote
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/nath_standalone_flask_template_data/docker-compose.yml
+    mode: '0644'
 
-- name: Stop and remove database and redis containers (only for deploy action)
-  docker_container:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - "{{ db_container_name }}"
-    - "{{ redis_container_name }}"
-  ignore_errors: yes
+- name: Docker compose down (deploy only)
+  command: docker compose -f /opt/nath_standalone_flask_template_data/docker-compose.yml down --remove-orphans
+  register: compose_down
+  changed_when: compose_down.rc == 0
   when: action == 'deploy'
 
-- name: Create Docker network
-  community.docker.docker_network:
-    name: "{{ network_name }}"
-    state: present
-
-- name: Debug docker registry info
-  debug:
-    msg: "Using docker registry: {{ docker_registry }}"
-
-- name: Pull PostgreSQL Docker image
-  docker_image:
-    name: "{{ docker_registry }}/postgres:15"
-    source: pull
-    force_source: yes
-
-- name: Run PostgreSQL Docker container
-  docker_container:
-    name: "{{ db_container_name }}"
-    image: "{{ docker_registry }}/postgres:15"
-    state: started
-    restart_policy: always
-    ports:
-      - "5433:5432"
-    env:
-      POSTGRES_USER: web
-      POSTGRES_PASSWORD: nsft2025_x
-      POSTGRES_DB: postgres
-    volumes:
-      - /opt/nath_standalone_flask_template_data/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - /opt/nath_standalone_flask_template_data/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-    command: postgres -c 'max_connections=100'
-    networks:
-      - name: "{{ network_name }}"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U web -d postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-  when: action == 'deploy'
+- name: Docker compose up
+  command: docker compose -f /opt/nath_standalone_flask_template_data/docker-compose.yml up -d --pull always --remove-orphans
+  register: compose_up
+  changed_when: compose_up.rc == 0
 
 - name: Wait for database container to be healthy
   docker_container_info:
     name: "{{ db_container_name }}"
   register: db_info
   until: db_info.container.State.Health.Status == "healthy"
-  retries: 10
+  retries: 20
   delay: 3
-  when: action == 'deploy'
-
-- name: Pull Redis Docker image
-  docker_image:
-    name: "{{ docker_registry }}/redis:7-alpine"
-    source: pull
-    force_source: yes
-
-- name: Run Redis Docker container
-  docker_container:
-    name: "{{ redis_container_name }}"
-    image: "{{ docker_registry }}/redis:7-alpine"
-    state: started
-    restart_policy: always
-    networks:
-      - name: "{{ network_name }}"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
 - name: Wait for Redis container to be healthy
   docker_container_info:
     name: "{{ redis_container_name }}"
   register: redis_info
   until: redis_info.container.State.Health.Status == "healthy"
-  retries: 10
+  retries: 20
   delay: 3
 
-- name: Check if database container exists and is running (for updates)
-  docker_container_info:
-    name: "{{ db_container_name }}"
-  register: db_container_info
-  when: action == 'update'
-
-- name: Fail if database container is not running during update
-  fail:
-    msg: "Database container '{{ db_container_name }}' is not running. Please ensure it exists and is healthy before updating."
-  when: action == 'update' and (db_container_info.exists is not defined or not db_container_info.exists or db_container_info.container.State.Status != 'running')
-
-- name: Wait for existing database container to be healthy (for updates)
-  docker_container_info:
-    name: "{{ db_container_name }}"
-  register: db_info
-  until: db_info.container.State.Health.Status == "healthy"
-  retries: 10
-  delay: 3
-  when: action == 'update'
-
-- name: Pull Docker image
-  docker_image:
-    name: "{{ docker_image }}"
-    source: pull
-    force_source: yes
-
-- name: Run App Docker container
-  docker_container:
-    name: "{{ container_name }}"
-    image: "{{ docker_image }}"
-    state: started
-    restart_policy: always
-    # No external port mapping - only accessible via Nginx
-    env:
-      NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: "{{ context }}"
-      DB_IP: "{{ db_container_name }}"
-      BUILD_DATE: "{{ ansible_date_time.iso8601 | regex_replace('T', '.') | regex_replace(':', '.') | regex_replace('-', '.') | regex_replace('Z', '') }}"
-    volumes:
-      - /var/log/nath_standalone_flask_template:/var/log/nath_standalone_flask_template
-      - /opt/nath_standalone_flask_template_data:/opt/nath_standalone_flask_template_data
-      - /var/backup:/var/backup
-    networks:
-      - name: "{{ network_name }}"
-    network_mode: bridge
-    dns_servers:
-      - 8.8.8.8
-      - 8.8.4.4
-
-- name: Wait for app container to be ready
+- name: Wait for app container to be running
   docker_container_info:
     name: "{{ container_name }}"
   register: app_info
   until: app_info.container.State.Status == "running"
-  retries: 10
+  retries: 20
   delay: 3
-
-- name: Pull Nginx Docker image
-  docker_image:
-    name: "{{ docker_registry }}/nginx:alpine"
-    source: pull
-    force_source: yes
-
-- name: Run Nginx container
-  docker_container:
-    name: "{{ nginx_container_name }}"
-    image: "{{ docker_registry }}/nginx:alpine"
-    state: started
-    restart_policy: always
-    ports:
-      - "8128:8128"
-    volumes:
-      - /opt/nath_standalone_flask_template_data/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /var/log/nginx:/var/log/nginx
-    networks:
-      - name: "{{ network_name }}" 

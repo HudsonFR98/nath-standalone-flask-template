@@ -1,38 +1,23 @@
 variables:
-  NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: test
-  DB_IP: localhost
-  PGPASSWORD: nsft2025_x
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
 
 stages:
   - populate-proxy
   - docker
   - test
-  - build
   - demo
   - prod
 
-# Reusable job templates
-.ssh_setup_template: &ssh_setup_template
-  image: python:3.10
-  before_script:
-    - apt update && apt install -y openssh-client
-    - mkdir -p ~/.ssh
-    - cp /mnt/ssh/* ~/.ssh/
-    - chmod 600 ~/.ssh/id_rsa
-    - chmod 644 ~/.ssh/known_hosts
-    - ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
-    - pip install ansible
-  tags:
-    - docker-runner
+.deploy_via_ansible: &deploy_via_ansible
+  script:
+    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
+
 
 populate_dependency_proxy:
   stage: populate-proxy
   image: docker:28.1.1
   services:
     - name: docker:28.1.1-dind
-      alias: docker
-      command: ["--insecure-registry=nath-server.local:8124"]
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
@@ -41,7 +26,6 @@ populate_dependency_proxy:
   script:
     - echo "Populating dependency proxy with nath used images..."
     - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
-    - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
     - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
     - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
     - docker pull ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:15
@@ -58,20 +42,16 @@ populate_dependency_proxy:
 
 build_docker:
   stage: docker
-  # Option A (requires step 1): keep pulling job image via Dependency Proxy
-  image: docker:28.1.1
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
   services:
-    - name: docker:28.1.1-dind
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1-dind
       alias: docker
-      command:
-        - "--insecure-registry=nath-server.local:8124"
-        - "--insecure-registry=nath-server.local:8127"
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "http://$CI_REGISTRY"
-    - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login "http://$CI_DEPENDENCY_PROXY_SERVER" -u "$CI_DEPENDENCY_PROXY_USER" --password-stdin
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - docker info
     - docker build --build-arg BASE_IMAGE=${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim -t $DOCKER_IMAGE .
@@ -84,24 +64,26 @@ build_docker:
 
 pytest:
   stage: test
-  <<: *ssh_setup_template
+  <<: *deploy_via_ansible
   variables:
-    SSH_HOST: serv-nsft-t-01
+    SSH_HOST: nsft.test.nath-server.home
     BUILD_DATE: $CI_PIPELINE_CREATED_AT
-  script:
-    - python3 deploy/ansible_deploy.py --action deploy --env test --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
+    CONTEXT: test
+    POSTGRES_PASSWORD: $TEST_POSTGRES_PASSWORD
+    NSFT_DB_NAME: $TEST_NSFT_DB_NAME
+    SECRET_KEY: $TEST_SECRET_KEY
+    ADMIN_USER_PASSWORD: $TEST_ADMIN_USER_PASSWORD
   environment:
     name: test
-    url: http://serv-nsft-t-01:8080/
+    url: https://nsft.test.nath-server.home
   needs:
     - build_docker
-  when: manual
   tags:
     - docker-runner
 
 pep8:
   stage: test
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
   script:
     - pip install flake8
     - flake8 nath_standalone_flask_template | tee pep8.out || true
@@ -116,72 +98,42 @@ pep8:
 
 deploy_demo:
   stage: demo
-  <<: *ssh_setup_template
+  <<: *deploy_via_ansible
   variables:
-    SSH_HOST: serv-nsft-d-01
+    SSH_HOST: nsft.demo.nath-server.home
     BUILD_DATE: $CI_PIPELINE_CREATED_AT
-  script:
-    - python3 deploy/ansible_deploy.py --action deploy --env demo --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
+    CONTEXT: demo
+    POSTGRES_PASSWORD: $DEMO_POSTGRES_PASSWORD
+    NSFT_DB_NAME: $DEMO_NSFT_DB_NAME
+    SECRET_KEY: $DEMO_SECRET_KEY
+    ADMIN_USER_PASSWORD: $DEMO_ADMIN_USER_PASSWORD
   when: manual
   environment:
-    name: staging
-    url: http://serv-nsft-d-01:8080/
+    name: demo
+    url: https://nsft.demo.nath-server.home
   needs:
     - build_docker
     - pytest
-  when: manual
-  tags:
-    - docker-runner
-
-update_demo:
-  stage: demo
-  <<: *ssh_setup_template
-  variables:
-    SSH_HOST: serv-nsft-d-01
-    BUILD_DATE: $CI_PIPELINE_CREATED_AT
-  script:
-    - python3 deploy/ansible_deploy.py --action update --env demo --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
-  when: manual
-  environment:
-    name: staging
-    url: http://serv-nsft-d-01:8080/
-  needs:
-    - build_docker
-    - pytest
-  when: manual
   tags:
     - docker-runner
 
 deploy_prod:
   stage: prod
-  <<: *ssh_setup_template
+  <<: *deploy_via_ansible
   variables:
-    SSH_HOST: nath-server.local
+    SSH_HOST: nsft.nath-server.home
     BUILD_DATE: $CI_PIPELINE_CREATED_AT
-  script:
-    - python3 deploy/ansible_deploy.py --action deploy --env prod --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
+    CONTEXT: prod
+    POSTGRES_PASSWORD: $PROD_POSTGRES_PASSWORD
+    NSFT_DB_NAME: $PROD_NSFT_DB_NAME
+    SECRET_KEY: $PROD_SECRET_KEY
+    ADMIN_USER_PASSWORD: $PROD_ADMIN_USER_PASSWORD
   when: manual
   environment:
     name: prod
-    url: http://nath-server.local:8080/
+    url: https://nsft.nath-server.home
   needs:
-    - build_docker #could also need pytest
-  tags:
-    - docker-runner
-
-update_prod:
-  stage: prod
-  <<: *ssh_setup_template
-  variables:
-    SSH_HOST: nath-server.local
-    BUILD_DATE: $CI_PIPELINE_CREATED_AT
-  script:
-    - python3 deploy/ansible_deploy.py --action update --env prod --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
-  when: manual
-  environment:
-    name: prod
-    url: http://nath-server.local:8080/
-  needs:
-    - build_docker #could also need pytest
+    - build_docker
+    - pytest
   tags:
     - docker-runner
