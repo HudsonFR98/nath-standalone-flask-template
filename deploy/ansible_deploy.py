@@ -3,6 +3,34 @@ import argparse
 import subprocess
 import os
 import sys
+import shutil
+
+
+def ensure_ansible_installed():
+    required_binaries = ['ansible-playbook', 'ansible-galaxy']
+    missing_binaries = [binary for binary in required_binaries if shutil.which(binary) is None]
+    if not missing_binaries:
+        return
+
+    print(
+        "Ansible binaries missing (%s). Installing ansible-core with pip..."
+        % ", ".join(missing_binaries),
+        file=sys.stderr
+    )
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'ansible-core'])
+    except subprocess.CalledProcessError as exc:
+        print(f"Unable to install ansible-core: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    still_missing = [binary for binary in required_binaries if shutil.which(binary) is None]
+    if still_missing:
+        print(
+            "Ansible installation completed but binaries are still missing: %s"
+            % ", ".join(still_missing),
+            file=sys.stderr
+        )
+        sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description='Deploy nath_standalone_flask_template using Ansible')
@@ -41,6 +69,8 @@ def main():
 
     # Always use docker_deploy.yml
     playbook = 'ansible/docker_deploy.yml'
+
+    ensure_ansible_installed()
 
     # Build the Ansible command
     cmd = [
@@ -103,12 +133,18 @@ def main():
     # Install Ansible collection
     try:
         subprocess.check_call(['ansible-galaxy', 'collection', 'install', '-r', 'ansible/requirements.yml'])
+    except FileNotFoundError:
+        print("ansible-galaxy command not found after bootstrap.", file=sys.stderr)
+        sys.exit(1)
     except subprocess.CalledProcessError as e:
         print(f"Error installing Ansible collection: {e}", file=sys.stderr)
         sys.exit(1)
     # Run the Ansible command
     try:
         subprocess.check_call(cmd)
+    except FileNotFoundError:
+        print("ansible-playbook command not found after bootstrap.", file=sys.stderr)
+        sys.exit(1)
     except subprocess.CalledProcessError as e:
         print(f"Error running Ansible: {e}", file=sys.stderr)
         sys.exit(1)
