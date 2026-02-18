@@ -38,7 +38,7 @@ populate_dependency_proxy:
     - tags
   when: manual
   tags:
-    - docker-runner
+    - docker
 
 build_docker:
   stage: docker
@@ -60,7 +60,7 @@ build_docker:
     - master
     - tags
   tags:
-    - docker-runner
+    - docker
 
 pytest:
   stage: test
@@ -79,7 +79,7 @@ pytest:
   needs:
     - build_docker
   tags:
-    - docker-runner
+    - docker
 
 pep8:
   stage: test
@@ -94,7 +94,7 @@ pep8:
     expire_in: 1 week
   when: manual
   tags:
-    - docker-runner
+    - docker
 
 deploy_demo:
   stage: demo
@@ -115,7 +115,7 @@ deploy_demo:
     - build_docker
     - pytest
   tags:
-    - docker-runner
+    - docker
 
 deploy_prod:
   stage: prod
@@ -136,4 +136,4 @@ deploy_prod:
     - build_docker
     - pytest
   tags:
-    - docker-runner
+    - docker
