@@ -21,6 +21,7 @@ populate_dependency_proxy:
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
   script:
     - |
+      #!/bin/bash
       echo "Populating project registry with images used in CI..."
 
       # List of upstream images to preload
