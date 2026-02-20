@@ -23,7 +23,7 @@ stages:
       ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
       chmod 644 ~/.ssh/known_hosts
   script:
-    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
+    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_REGISTRY --dependency-proxy-username $CI_REGISTRY_USER --dependency-proxy-password $CI_REGISTRY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
 
 
 populate_dependency_proxy:
