@@ -10,18 +10,18 @@ stages:
   - prod
 
 .deploy_via_ansible: &deploy_via_ansible
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
+  image: $CI_REGISTRY_IMAGE/python:3.11-slim
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends openssh-client
     - rm -rf /var/lib/apt/lists/*
   script:
-    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
+    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
 
 
 populate_dependency_proxy:
   stage: populate-proxy
-  image: docker:28.1.1
+  image: $CI_REGISTRY_IMAGE/docker:28.1.1
   before_script:
     # Log in to GitLab Container Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
@@ -53,13 +53,13 @@ populate_dependency_proxy:
 
 build_docker:
   stage: docker
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
+  image: $CI_REGISTRY_IMAGE/docker:28.1.1
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - docker info
-    - docker build --build-arg BASE_IMAGE=${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim -t $DOCKER_IMAGE .
+    - docker build --build-arg BASE_IMAGE=$CI_REGISTRY_IMAGE/python:3.11-slim -t $DOCKER_IMAGE .
     - docker push $DOCKER_IMAGE
   only:
     - master
@@ -89,7 +89,7 @@ pytest:
 
 pep8:
   stage: test
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
+  image: $CI_REGISTRY_IMAGE/python:3.11-slim
   script:
     - pip install flake8
     - flake8 nath_standalone_flask_template | tee pep8.out || true
