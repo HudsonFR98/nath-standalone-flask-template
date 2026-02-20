@@ -15,7 +15,12 @@ stages:
     - apt-get update
     - apt-get install -y --no-install-recommends openssh-client
     - mkdir -p ~/.ssh
-    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - |
+      if [ -f "$SSH_PRIVATE_KEY" ]; then
+        cp "$SSH_PRIVATE_KEY" ~/.ssh/id_rsa
+      else
+        printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+      fi
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
