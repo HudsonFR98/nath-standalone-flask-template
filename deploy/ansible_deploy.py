@@ -77,7 +77,7 @@ def main():
         'ansible-playbook',
         '-i', 'ansible/inventory.ini',
         playbook,
-        '-e', f'action={args.action}',
+        '-e', f'deploy_action={args.action}',
         '-e', f'context={args.env}',
         '-e', f'target_host={target_host}',
         '-e', f'docker_image={args.docker_image}',

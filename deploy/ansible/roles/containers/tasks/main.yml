@@ -11,7 +11,7 @@
   command: docker compose -f /opt/nath_standalone_flask_template_data/docker-compose.yml down --remove-orphans
   register: compose_down
   changed_when: compose_down.rc == 0
-  when: action == 'deploy'
+  when: deploy_action == 'deploy'
 
 - name: Docker compose up
   command: docker compose -f /opt/nath_standalone_flask_template_data/docker-compose.yml up -d --pull always --remove-orphans

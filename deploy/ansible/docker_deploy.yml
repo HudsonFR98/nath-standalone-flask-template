@@ -6,7 +6,7 @@
   remote_user: root
   become: yes
   vars:
-    action: "{{ action }}"
+    deploy_action: "{{ deploy_action }}"
     context: "{{ context }}"
     docker_image: "{{ docker_image }}"
     app_name: "nsft"  # Short name for nath_standalone_flask_template
