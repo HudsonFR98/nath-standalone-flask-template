@@ -1,7 +1,6 @@
 variables:
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  CI_DEPENDENCY_PROXY_SERVER: "gitlab.nath-server.home:5050"
-  CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
+
 
 stages:
   - populate-proxy
@@ -24,33 +23,26 @@ populate_dependency_proxy:
   stage: populate-proxy
   image: docker:28.1.1
   before_script:
-    # Login to your GitLab registry / dependency proxy
-    - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
+    # Log in to GitLab Container Registry
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
   script:
-    - echo "Bootstrapping dependency proxy with commonly used images..."
-    
-    # List of upstream images to cache
-    - export IMAGES="python:3.11-slim docker:28.1.1 postgres:15 nginx:alpine redis:7-alpine alpine:latest"
-    
-    # Loop over images and pull through dependency proxy
     - |
+      echo "Populating project registry with images used in CI..."
+      
+      # List of upstream images to preload (space-separated for POSIX compatibility)
+      IMAGES="python:3.11-slim docker:28.1.1 docker:28.1.1-dind postgres:15 nginx:alpine redis:7-alpine alpine:latest"
+      
       for img in $IMAGES; do
-        echo "Processing $img..."
-        # Construct full proxy path
-        PROXY_IMG="$CI_DEPENDENCY_PROXY_SERVER/$CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/$(echo $img | cut -d: -f1):$(echo $img | cut -d: -f2)"
-        # Pull via dependency proxy (GitLab will auto-cache if image exists upstream)
-        docker pull $PROXY_IMG || {
-          echo "Proxy cache miss for $img — pulling upstream directly and retrying..."
-          # Pull from Docker Hub
-          docker pull $img
-          # Tag it for proxy path
-          docker tag $img $PROXY_IMG
-          # Attempt push — may fail if GitLab blocks write (CE/EE behavior)
-          docker push $PROXY_IMG || echo "Push to proxy blocked — first CI pull will auto-cache"
-        }
+        target="$CI_REGISTRY_IMAGE/${img#*/}"
+        echo "Pulling $img from Docker Hub..."
+        docker pull "$img"
+        echo "Tagging as $target..."
+        docker tag "$img" "$target"
+        echo "Pushing $target to project registry..."
+        docker push "$target"
       done
-
-    - echo "Dependency proxy bootstrap complete!"
+      
+      echo "✅ Project registry population completed!"
   only:
     - master
     - tags
