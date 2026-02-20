@@ -10,7 +10,7 @@ stages:
   - prod
 
 .deploy_via_ansible: &deploy_via_ansible
-  image: python:3.11-slim
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends openssh-client
@@ -53,13 +53,13 @@ populate_dependency_proxy:
 
 build_docker:
   stage: docker
-  image: docker:28.1.1
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:28.1.1
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - docker info
-    - docker build --build-arg BASE_IMAGE=${CI_DEPENDENCY_PROXY_SERVER}/${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim -t $DOCKER_IMAGE .
+    - docker build --build-arg BASE_IMAGE=${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim -t $DOCKER_IMAGE .
     - docker push $DOCKER_IMAGE
   only:
     - master
@@ -89,7 +89,7 @@ pytest:
 
 pep8:
   stage: test
-  image: python:3.11-slim
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.11-slim
   script:
     - pip install flake8
     - flake8 nath_standalone_flask_template | tee pep8.out || true

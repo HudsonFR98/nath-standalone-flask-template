@@ -32,7 +32,7 @@ services:
       - nsft_network
 
   db:
-    image: postgres:15
+    image: {{ docker_registry }}/postgres:15
     container_name: {{ db_container_name }}
     restart: always
     ports:
@@ -55,7 +55,7 @@ services:
       - nsft_network
 
   redis:
-    image: redis:7-alpine
+    image: {{ docker_registry }}/redis:7-alpine
     container_name: {{ redis_container_name }}
     restart: always
     healthcheck:
@@ -67,7 +67,7 @@ services:
       - nsft_network
 
   nginx:
-    image: nginx:alpine
+    image: {{ docker_registry }}/nginx:alpine
     container_name: {{ nginx_container_name }}
     restart: always
     ports:
