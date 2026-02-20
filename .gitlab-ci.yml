@@ -4,6 +4,7 @@ variables:
   CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX: "homelab/dependency_proxy/containers"
 
 stages:
+  - populate-proxy
   - docker
   - test
   - demo
