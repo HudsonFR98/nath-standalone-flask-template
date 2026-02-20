@@ -137,7 +137,6 @@ deploy_prod:
     NSFT_DB_NAME: $PROD_NSFT_DB_NAME
     SECRET_KEY: $PROD_SECRET_KEY
     ADMIN_USER_PASSWORD: $PROD_ADMIN_USER_PASSWORD
-  when: manual
   environment:
     name: prod
     url: https://nsft.nath-server.home
