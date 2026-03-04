@@ -3,6 +3,7 @@ import os
 from flask import Blueprint, render_template, abort, jsonify
 from nath_standalone_flask_template.lib import config
 from nath_standalone_flask_template.lib.flask_util import login_required
+from nath_standalone_flask_template.lib.telegram import send_telegram_message
 
 test_output = Blueprint('test_output', __name__)
 log = logging.getLogger(__name__)
@@ -12,6 +13,11 @@ log = logging.getLogger(__name__)
 def simple():
     raise Exception('Test exception')
     return jsonify({'message': 'Hello, World!'})
+
+@test_output.route('/telegram')
+def telegram():
+    send_telegram_message('Hello, World!')
+    return jsonify({'message': 'Telegram message sent'})
 
 
 @test_output.route('/output')
