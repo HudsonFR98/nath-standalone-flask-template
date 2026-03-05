@@ -140,14 +140,24 @@ class Config(object):
     EMAIL_DEV = 'natha.debanne@gmail.com'
     SETTINGS = None
     STATIC_URI = '/static'
-    SECRET_KEY = require_env('SECRET_KEY')
+    SECRET_KEY = require_env("SECRET_KEY")
 
     # Telegram notification settings
-    TELEGRAM_BOT_TOKEN = "7237344537:AAF2dpUWEChJZz9q2X36smwX-5-7xsk51gw"
-    TELEGRAM_CHAT_ID = "6440591299"
+    TELEGRAM_BOT_TOKEN = require_env("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_CHAT_ID = require_env("TELEGRAM_CHAT_ID")
+
+    # Initial admin bootstrap user (used only if no users exist yet)
+    ADMIN_USER_USERNAME = require_env("ADMIN_USER_USERNAME")
+    ADMIN_USER_PASSWORD = require_env("ADMIN_USER_PASSWORD")
+    ADMIN_USER_FIRST_NAME = require_env("ADMIN_USER_FIRST_NAME")
+    ADMIN_USER_LAST_NAME = require_env("ADMIN_USER_LAST_NAME")
+    ADMIN_USER_EMAIL = require_env("ADMIN_USER_EMAIL")
+
     # Database (same building blocks in all contexts; DB host differs via DB_IP)
     DB_URI = build_db_uri()
     SQLALCHEMY_DATABASE_URI = DB_URI
+    APP_NAME = "Nath Standalone Flask Template"
+
 
 
     # (Legacy) Email settings kept for backward compatibility, no longer used for errors

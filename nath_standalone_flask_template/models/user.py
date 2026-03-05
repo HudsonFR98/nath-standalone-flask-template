@@ -8,6 +8,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from nath_standalone_flask_template.lib.database import Base, DBSession
+from nath_standalone_flask_template.lib import config
 
 log = logging.getLogger(__name__)
 
@@ -170,36 +171,72 @@ class User(Base, UserMixin):
         if user and user.check_password(password):
             return user
         raise Exception("Invalid username or password")
+
+    @classmethod
+    def _get_initial_admin_data(cls) -> dict:
+        """Load initial admin values from application config with safe defaults."""
+        username = config.ADMIN_USER_USERNAME
+        password = config.ADMIN_USER_PASSWORD
+        first_name = config.ADMIN_USER_FIRST_NAME
+        last_name = config.ADMIN_USER_LAST_NAME
+        email = config.ADMIN_USER_EMAIL
+        return {
+            'username': username,
+            'password': password,
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email
+        }
     
     @classmethod
     def create_admin_if_not_exists(cls):
-        """Create an admin user if no users exist"""
-        if cls.query.count() == 0:
-            # Create admin role if it doesn't exist
-            admin_role = Role.query.filter_by(name='admin').first()
-            if not admin_role:
-                admin_role = Role(
-                    name='admin',
-                    description='Administrator with all permissions',
-                    permissions=['admin', 'read', 'write', 'delete']
-                )
-                DBSession.add(admin_role)
-            
+        """Ensure admin user exists and matches configured values."""
+        admin_data = cls._get_initial_admin_data()
+
+        # Create admin role if it doesn't exist
+        admin_role = Role.query.filter_by(name='admin').first()
+        if not admin_role:
+            admin_role = Role(
+                name='admin',
+                description='Administrator with all permissions',
+                permissions=['admin', 'read', 'write', 'delete']
+            )
+            DBSession.add(admin_role)
+
+        # Technical admin account is expected to be user id 1
+        admin_user = cls.query.get(1)
+        
+        if not admin_user:
             # Create admin user
             admin_user = cls(
-                ide='admin',
-                pwd='admin',  # Will be hashed by the validator
-                first_name='Admin',
-                last_name='User',
-                email='admin@example.com',
-                active=True
+                ide=admin_data['username'],
+                pwd=admin_data['password'],  # Will be hashed by the validator
+                first_name=admin_data['first_name'],
+                last_name=admin_data['last_name'],
+                email=admin_data['email'],
+                active=True,
+                has_left=False
             )
             admin_user.add_role(admin_role)
             DBSession.add(admin_user)
             DBSession.commit()
-            log.info("Created admin user with username 'admin' and password 'admin'")
+            log.info("Created admin user with username '%s'", admin_data['username'])
             return admin_user
-        return None
+        else:
+            # Update existing admin user from config
+            admin_user.ide = admin_data['username']
+            admin_user.first_name = admin_data['first_name']
+            admin_user.last_name = admin_data['last_name']
+            admin_user.email = admin_data['email']
+            admin_user.active = True
+            admin_user.has_left = False
+            if admin_role not in admin_user.roles:
+                admin_user.add_role(admin_role)
+            admin_user.pwd = admin_data['password']  # Will be hashed by the validator
+
+            DBSession.commit()
+            log.info("Updated admin user '%s' from configuration", admin_data['username'])
+        return admin_user
 
 # Add query property to models
 User.query = DBSession.query_property()

@@ -23,7 +23,8 @@ stages:
       ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
       chmod 644 ~/.ssh/known_hosts
   script:
-    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_REGISTRY --dependency-proxy-username $CI_REGISTRY_USER --dependency-proxy-password $CI_REGISTRY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username admin --admin-user-password $ADMIN_USER_PASSWORD --admin-user-first-name Nathanaël --admin-user-last-name Debanne --admin-user-email natha.debanne@gmail.com
+    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_REGISTRY --dependency-proxy-username $CI_REGISTRY_USER --dependency-proxy-password $CI_REGISTRY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username "${ADMIN_USER_USERNAME:-admin}" --admin-user-password "$ADMIN_USER_PASSWORD" --admin-user-first-name "${ADMIN_USER_FIRST_NAME:-Nathanaël}" --admin-user-last-name "${ADMIN_USER_LAST_NAME:-Debanne}" --admin-user-email "${ADMIN_USER_EMAIL:-natha.debanne@gmail.com}"
+
 
 
 populate_dependency_proxy:
@@ -132,6 +133,7 @@ deploy_demo:
 deploy_prod:
   stage: prod
   <<: *deploy_via_ansible
+  # admin_user variables do have default values in case they are not set (except for the password)
   variables:
     SSH_HOST: nsft.nath-server.home
     BUILD_DATE: $CI_PIPELINE_CREATED_AT
@@ -140,6 +142,10 @@ deploy_prod:
     NSFT_DB_NAME: $PROD_NSFT_DB_NAME
     SECRET_KEY: $PROD_SECRET_KEY
     ADMIN_USER_PASSWORD: $PROD_ADMIN_USER_PASSWORD
+    ADMIN_USER_USERNAME: $PROD_ADMIN_USER_USERNAME
+    ADMIN_USER_FIRST_NAME: $PROD_ADMIN_USER_FIRST_NAME
+    ADMIN_USER_LAST_NAME: $PROD_ADMIN_USER_LAST_NAME
+    ADMIN_USER_EMAIL: $PROD_ADMIN_USER_EMAIL
   environment:
     name: prod
     url: https://nsft.nath-server.home
