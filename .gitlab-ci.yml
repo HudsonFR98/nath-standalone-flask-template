@@ -29,7 +29,7 @@ stages:
 
 populate_dependency_proxy:
   stage: populate-proxy
-  image: $CI_REGISTRY_IMAGE/docker:28.1.1
+  image: docker:28.1.1
   before_script:
     # Log in to GitLab Container Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
