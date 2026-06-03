@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--action', choices=['deploy', 'update'], default='deploy', help='Action to perform')
     parser.add_argument('--env', choices=['test', 'demo', 'prod'], required=True, help='Environment to deploy to')
     parser.add_argument('--docker-image', required=True, help='Docker image to deploy')
-    parser.add_argument('--docker-registry', default='registry.gitlab.com', help='Docker registry')
+    parser.add_argument('--docker-registry', help='Image path prefix for third-party images (e.g. postgres, nginx) via GitLab Dependency Proxy')
     parser.add_argument('--registry-username', help='Docker registry username')
     parser.add_argument('--registry-password', help='Docker registry password')
     parser.add_argument('--container-registry-server', help='Container registry server URL')

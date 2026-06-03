@@ -1,5 +1,6 @@
 variables:
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  DEP_PROXY_PREFIX: $CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX
 
 
 stages:
@@ -10,7 +11,7 @@ stages:
   - prod
 
 .deploy_via_ansible: &deploy_via_ansible
-  image: $CI_REGISTRY_IMAGE/python:3.11-slim
+  image: $DEP_PROXY_PREFIX/python:3.11-slim
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends openssh-client
@@ -23,51 +24,17 @@ stages:
       ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
       chmod 644 ~/.ssh/known_hosts
   script:
-    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $CI_REGISTRY_IMAGE --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_REGISTRY --dependency-proxy-username $CI_REGISTRY_USER --dependency-proxy-password $CI_REGISTRY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username "${ADMIN_USER_USERNAME:-admin}" --admin-user-password "$ADMIN_USER_PASSWORD" --admin-user-first-name "${ADMIN_USER_FIRST_NAME:-Nathanaël}" --admin-user-last-name "${ADMIN_USER_LAST_NAME:-Debanne}" --admin-user-email "${ADMIN_USER_EMAIL:-natha.debanne@gmail.com}"
-
-
-
-populate_dependency_proxy:
-  stage: populate-proxy
-  image: docker:28.1.1
-  before_script:
-    # Log in to GitLab Container Registry
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u "$CI_REGISTRY_USER" --password-stdin
-  script:
-    - |
-      echo "Populating project registry with images used in CI..."
-      
-      # List of upstream images to preload (space-separated for POSIX compatibility)
-      IMAGES="python:3.11-slim docker:28.1.1 docker:28.1.1-dind postgres:15 nginx:alpine redis:7-alpine alpine:latest"
-      
-      for img in $IMAGES; do
-        target="$CI_REGISTRY_IMAGE/${img#*/}"
-        echo "Pulling $img from Docker Hub..."
-        docker pull "$img"
-        echo "Tagging as $target..."
-        docker tag "$img" "$target"
-        echo "Pushing $target to project registry..."
-        docker push "$target"
-      done
-      
-      echo "✅ Project registry population completed!"
-  only:
-    - master
-    - tags
-  when: manual
-  tags:
-    - docker
-
+    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $DEP_PROXY_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username "${ADMIN_USER_USERNAME:-admin}" --admin-user-password "$ADMIN_USER_PASSWORD" --admin-user-first-name "${ADMIN_USER_FIRST_NAME:-Nathanaël}" --admin-user-last-name "${ADMIN_USER_LAST_NAME:-Debanne}" --admin-user-email "${ADMIN_USER_EMAIL:-natha.debanne@gmail.com}"
 
 build_docker:
   stage: docker
-  image: $CI_REGISTRY_IMAGE/docker:28.1.1
+  image: $DEP_PROXY_PREFIX/docker:28.1.1
   before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
   script:
     - docker info
-    - docker build --build-arg BASE_IMAGE=$CI_REGISTRY_IMAGE/python:3.11-slim -t $DOCKER_IMAGE .
+    - docker build --build-arg BASE_IMAGE=$DEP_PROXY_PREFIX/python:3.11-slim -t $DOCKER_IMAGE .
     - docker push $DOCKER_IMAGE
   only:
     - master
@@ -97,7 +64,7 @@ pytest:
 
 pep8:
   stage: test
-  image: $CI_REGISTRY_IMAGE/python:3.11-slim
+  image: $DEP_PROXY_PREFIX/python:3.11-slim
   script:
     - pip install flake8
     - flake8 nath_standalone_flask_template | tee pep8.out || true

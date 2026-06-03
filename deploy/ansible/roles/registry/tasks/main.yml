@@ -1,5 +1,5 @@
 ---
-# Docker registry authentication tasks
+# Log in to the GitLab Container Registry (app image) and to the Dependency Proxy host (Docker Hub pulls)
 
 - name: Log in to GitLab Container Registry
   docker_login:
