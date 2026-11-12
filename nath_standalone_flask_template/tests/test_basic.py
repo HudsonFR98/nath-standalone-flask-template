@@ -48,7 +48,7 @@ def test_config_loading():
     settings.
     
     The test checks:
-    - The context is set to 'test'
+    - The context is one of dev, integration, validation, prod
     - Testing mode is enabled
     - Database URI contains the expected test database name
     
@@ -56,12 +56,12 @@ def test_config_loading():
     tests to behave unexpectedly or connect to the wrong database.
     
     Assertions:
-        - CONTEXT should be 'test'
+        - CONTEXT should be a known deployment context
         - TESTING flag should be True
         - Database URI should contain 'nsft' (test database)
     """
     # Verify test context is set correctly
-    assert config.CONTEXT in ('test', 'dev')
+    assert config.CONTEXT in ('integration', 'dev', 'validation', 'prod')
     # Verify testing mode is enabled
     assert 'nsft' in config.SQLALCHEMY_DATABASE_URI
 
@@ -110,7 +110,7 @@ def test_user_model():
     Assertions:
         - User should be created with provided attributes
         - Password should be hashed (not plain text)
-        - Password hash should be 64 characters (SHA256)
+        - Password hash should be a Werkzeug hash (scrypt or pbkdf2)
         - String representation should show user's full name
     """
     try:
@@ -128,7 +128,7 @@ def test_user_model():
         
         # Step 3: Test password hashing functionality
         assert user.pwd != 'testpass'  # Password should be hashed, not plain text
-        assert len(user.pwd) == 64  # SHA256 hash should be 64 characters long
+        assert user.pwd.startswith('scrypt:') or user.pwd.startswith('pbkdf2:')
         
         # Step 4: Test string representation
         assert str(user) == 'Test User'

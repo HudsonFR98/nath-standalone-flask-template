@@ -143,215 +143,152 @@ If you need to restore your development database from a backup file in the `back
 
 ## Testing
 
-The application uses a consolidated testing approach with organized, easily editable test data.
+Pytest lives in `nath_standalone_flask_template/tests/`. The suite talks to Postgres, so a full run needs a database (local Compose with `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev`, or the integration VM).
 
-Test data is organized in the `nath_standalone_flask_template/tests/fixtures/` directory
+Context-only checks do not open the database (`NO_DB` in `test_context.py`):
 
-### Test Runner
+```bash
+NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=integration \
+DB_IP=127.0.0.1 \
+POSTGRES_USER=web POSTGRES_PASSWORD=web POSTGRES_DB=postgres NSFT_DB_NAME=nsft \
+SECRET_KEY=dev TELEGRAM_BOT_TOKEN=t TELEGRAM_CHAT_ID=1 \
+ADMIN_USER_USERNAME=admin ADMIN_USER_PASSWORD=admin \
+ADMIN_USER_FIRST_NAME=A ADMIN_USER_LAST_NAME=B ADMIN_USER_EMAIL=a@b.c \
+python3 -m pytest nath_standalone_flask_template/tests/test_context.py -q
+```
 
-The consolidated test runner (`run_tests.py`) handles:
-- Permission issues by using temporary directories
-- Environment variable setup
-- Coverage reporting
-- Cleanup after execution
+Infra helpers (Pi-hole, IP pool, Terraform plan guard) are stdlib unit tests:
 
-## 1. GitLab CI/CD Pipeline Structure
+```bash
+cd deploy && python3 -m unittest discover -s infra/tests -t .
+```
 
-The pipeline is defined in `.gitlab-ci.yml` and consists of six stages:
+On a deployed integration VM, CI runs the same app suite inside the container via `deploy/ansible/run_tests.yml`.
 
-1. **Install**: Sets up the test environment
-2. **Test**: Runs tests and code quality checks
-3. **Build**: Creates a distributable package
-4. **Docker**: Builds and pushes Docker images
-5. **Demo**: Deploys to the demo/staging environment (manual trigger)
-6. **Prod**: Deploys to the production environment (manual trigger)
+## GitLab CI/CD
 
-## 2. Environment Configuration
+`.gitlab-ci.yml` stages, in order: `docker`, `integration`, `validation`, `prod`.
 
-The application uses environment variables to determine which configuration to use:
+1. **docker** — build and push the app image (`build_docker`) on every branch and merge request.
+2. **integration** — allocate a Pi-hole IP, create the VM with Terraform, deploy with Ansible, run pytest in the container, then destroy the VM. `INTEGRATION_KEEP_VM=true` makes that destroy manual.
+3. **validation** — same VM flow after integration tests pass. No automated tests. `destroy_validation_vm` is manual.
+4. **prod** — `master` only. VM setup runs on the chain; `update_prod` and `destroy_prod_vm` are manual.
 
-- `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT`: Specifies the environment (dev, test, demo, prod)
-- `DB_IP`: Required for dev and test environments to specify the database IP
+`dev` stays on local Docker Compose and is not a CI environment.
 
-These configurations are defined in `nath_standalone_flask_template/lib/_config.py` with specific classes for each environment:
+A branch that already has an open merge request runs the merge-request pipeline only.
 
-### DEV Environment
-- **Purpose**: Local development
-- **Configuration**: `DevConfig` class
-- **Database**: Uses a local database specified by `DB_IP` environment variable (defaults to `nsft_db_dev`)
-- **Run Command**: `docker compose up --build`
-- **Deployment**: Docker containers with volume mounts for development
+## Environments
 
-### PROD Environment
-- **Purpose**: Production deployment
-- **Configuration**: `ProdConfig` class
-- **Database**: Uses a prod database (`nsft`) on the `nsft_db_prod` container
-- **Deployment**:
-  - Triggered manually in GitLab CI
-  - Uses Ansible to deploy Docker containers to `nath-server.local` server
-  - Accessible at `http://nath-server.local`
-  - Uses Docker for process management
+`NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT` selects the class in `nath_standalone_flask_template/lib/_config.py`. Names live in `nath_standalone_flask_template/lib/const.py`.
 
-## 3. Deployment Process
+| Context | Role |
+|---|---|
+| `dev` | Local Compose. `DevConfig`. |
+| `integration` | Disposable CI VM `nsft.integration.nath-server.home`. `IntegrationConfig` (`TESTING = True`). |
+| `validation` | Pre-production VM `nsft.validation.nath-server.home`. `ValidationConfig`. |
+| `prod` | `nsft.nath-server.home`. `ProdConfig`. HTTP on port 80 on the VM. |
 
-The deployment process is handled by several scripts:
+Deployed hosts are created by Terraform (`deploy/terraform/<env>`) and registered in Pi-hole before Ansible runs. See `docs/infra_automation/`.
 
-1. **GitLab CI** triggers the deployment through the `.gitlab-ci.yml` file
-2. **Ansible** (`deploy/ansible/*.yml`) is used to:
-   - Install Docker on the target server
-   - Pull the Docker image from the GitLab Container Registry
-   - Run the Docker container with appropriate environment variables and volume mounts
+`DB_IP` is required in every context: the database container name on a VM, or the Compose service host in dev.
 
-3. **Docker** containers handle:
-   - Application execution
-   - Database migrations
-   - Nginx configuration
-   - Process management
+## Deployment
 
-## 4. Environment-Specific Configurations
+GitLab calls `python3 deploy/ansible_deploy.py`.
 
-Each environment has specific configurations for:
+- `--action deploy` or `update` runs `deploy/ansible/docker_deploy.yml` (Docker, directories, registry CA, files, containers, HTTP check).
+- `--action test` runs `deploy/ansible/run_tests.yml` inside `nsft_app_<env>`.
+- `--env` is `integration`, `validation`, or `prod`.
+- Ansible connects as `Nath` (cloud-init user on the template VM).
 
-- **Docker**: Different environment variables and volume mounts
-- **Database Connections**: Different database URIs in the config classes
-- **Installation Process**: Different installation methods based on environment
+An update keeps the Postgres volume. A fresh `deploy` recreates containers.
 
-## 5. Update Process
+CI variables are listed at the top of `.gitlab-ci.yml`. Shared Proxmox/Pi-hole variables and all `INTEGRATION_*` / `VALIDATION_*` must not be protected (pipelines run on feature branches). Only `PROD_*` should be protected. Use GitLab environment scope where documented.
 
-Updates to existing installations are handled by:
-- The Ansible playbooks with conditional logic based on action type
-- Dedicated GitLab CI jobs (`update_demo` and `update_prod`)
-- Preserves existing database containers and data during updates
+## Nginx
 
-This comprehensive CI/CD setup ensures that code is properly tested before being deployed to staging and production environments, with appropriate controls and environment-specific configurations at each stage.
+Each environment has its own VM and nginx config:
 
+- Integration: `deploy/nginx_integration.conf` (port 80), `nsft_app_integration`
+- Validation: `deploy/nginx_validation.conf` (port 80), `nsft_app_validation`
+- Production: `deploy/nginx_prod.conf` (port 80), `nsft_app_prod`
 
-## Nginx Setup (Test, Demo and Production)
-
-The test, demo, and production environments now use a modern Nginx reverse proxy:
-
-### Architecture
-- **Nginx Container**: Handles HTTP traffic on port 80 (e.g., `nsft_nginx_test`)
-- **Application Container**: Runs Gunicorn on internal port 8080 (not exposed externally) (e.g., `nsft_app_test`)
-- **Database Container**: PostgreSQL 15 on internal port 5433 (e.g., `nsft_db_test`)
-- **Redis Container**: Redis cache on internal port 6379 (e.g., `nsft_redis_test`)
-- **Network**: Isolated Docker network per environment (e.g., `nsft_network_test`)
-
-### Features
-- **Modern Security Headers**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
-- **Static File Serving**: Flask application serves static files (CSS, JS, images)
-- **Health Checks**: Built-in health check endpoints
-- **Clean Proxy Configuration**: Proper forwarding of headers and protocols
-
-### Access URLs
-- **Production**: http://nath-server.local
-
-### Configuration Files
-- **Test**: `deploy/nginx_test.conf`
-- **Demo**: `deploy/nginx_demo.conf`
-- **Production**: `deploy/nginx_prod.conf`
-
-### Session Security
-Test, demo, and production environments use standard HTTP session cookies:
-- `SESSION_COOKIE_SECURE = False` (HTTP compatible)
-- `SESSION_COOKIE_HTTPONLY = True` (No JavaScript access)
-- `SESSION_COOKIE_SAMESITE = 'Lax'` (CSRF protection)
-
-**Note**: HTTPS and SSL certificates can be added later by re-enabling the certbot steps in the Ansible deployment and updating the Nginx configurations.
+Compose publishes port 80 on every environment. All contexts use HTTP session cookies (`SESSION_COOKIE_SECURE = False`).
 
 ## Internationalization (i18n) Support
 
-The application now supports internationalization with English and French translations. Users can switch between languages using the language selector in the navigation bar.
+The application uses Flask-Babel. English and French are supported; users switch language from the navigation bar. Catalog files live under `nath_standalone_flask_template/translations/` (`babel.cfg` at the repo root).
 
-### Translation Management
+### Mark strings for translation
 
-The application uses Flask-Babel for internationalization. Translation files are located in `nath_standalone_flask_template/translations/`.
+In Python:
 
-#### Adding New Translations
+```python
+from flask_babel import gettext as _
 
-When you add new translatable strings to the application:
+message = _('Your translatable string')
+```
 
-1. **Mark strings for translation** in your Python code:
-   ```python
-   from flask_babel import gettext as _
-   
-   message = _('Your translatable string')
-   ```
+In Jinja2 templates:
 
-2. **Mark strings for translation** in your Jinja2 templates:
-   ```html
-   <h1>{{ _('Welcome to the Dashboard') }}</h1>
-   ```
+```html
+<h1>{{ _('Welcome to the Dashboard') }}</h1>
+```
 
-3. **Extract translatable strings**:
-   ```bash
-   python manage_translations.py extract
-   ```
+### Translation workflow (Docker dev)
 
-4. **Update existing translation files**:
-   ```bash
-   python manage_translations.py update
-   ```
+Local dev runs in Compose (`nsft_app_dev`). **Do not** run Babel in `nsft_db_dev` (Postgres only). Use the **app** container; the project is mounted at `/opt/nath_standalone_flask_template`, so `.po` / `.mo` changes on the host and in the container are the same files.
 
-5. **Edit the translation files**:
-   - English: `nath_standalone_flask_template/translations/en/LC_MESSAGES/messages.po`
-   - French: `nath_standalone_flask_template/translations/fr/LC_MESSAGES/messages.po`
+Add a **shell function** once per terminal (a plain variable does not work: zsh treats `$APP_PY extract` as one command name):
 
-6. **Compile the translations**:
-   ```bash
-   python manage_translations.py compile
-   ```
+```bash
+app_py() {
+  docker exec -it nsft_app_dev \
+    /opt/env3/nath_standalone_flask_template/bin/python \
+    /opt/nath_standalone_flask_template/manage_translations.py "$@"
+}
+```
 
-#### Adding a New Language
+Typical cycle after adding `{{ _('...') }}` strings:
 
-To add support for a new language (e.g., Spanish):
+```bash
+app_py extract    # refresh messages.pot
+app_py update     # merge into en/fr .po files
+# edit nath_standalone_flask_template/translations/*/LC_MESSAGES/messages.po on the host
+app_py compile    # build .mo files; refresh http://localhost:8080
+```
 
-1. **Initialize the new language**:
-   ```bash
-   python manage_translations.py init es
-   ```
+One-shot: `app_py all`
 
-2. **Add the language to the configuration** in `nath_standalone_flask_template/lib/_config.py`:
-   ```python
-   LANGUAGES = {
-       'en': 'English',
-       'fr': 'Français',
-       'es': 'Español'
-   }
-   ```
+Without a function, run the full command each time:
 
-3. **Add the language to the navbar** in `nath_standalone_flask_template/templates/base.html`:
-   ```html
-   <a class="dropdown-item" href="{{ url_for('i18n.set_language', language='es') }}">Español</a>
-   ```
+```bash
+docker exec -it nsft_app_dev /opt/env3/nath_standalone_flask_template/bin/python \
+  /opt/nath_standalone_flask_template/manage_translations.py extract
+```
 
-4. **Translate the strings** in `nath_standalone_flask_template/translations/es/LC_MESSAGES/messages.po`
+Commands: `extract`, `update`, `compile`, `init <lang>`, `all`.
 
-5. **Compile the translations**:
-   ```bash
-   python manage_translations.py compile
-   ```
+### Host-only (optional)
 
-#### Translation Management Script
+If you prefer not to use Docker for Babel:
 
-The `manage_translations.py` script provides convenient commands for translation management:
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install Babel
+python manage_translations.py all
+```
 
-- `python manage_translations.py extract` - Extract translatable strings
-- `python manage_translations.py update` - Update existing translation files
-- `python manage_translations.py compile` - Compile all translation files
-- `python manage_translations.py init <lang>` - Initialize new language
-- `python manage_translations.py all` - Run extract, update, and compile
+### Add a new language (e.g. Spanish)
 
-#### Translation Workflow
+1. `app_py init es` (or host `python manage_translations.py init es`)
+2. Add `'es': 'Español'` to `LANGUAGES` in `nath_standalone_flask_template/lib/_config.py`
+3. Add a navbar link in `nath_standalone_flask_template/templates/base.html`
+4. Translate `nath_standalone_flask_template/translations/es/LC_MESSAGES/messages.po`
+5. `app_py compile`
 
-1. **Development**: Add translatable strings using `_()` function
-2. **Extraction**: Run `python manage_translations.py extract` to create/update `messages.pot`
-3. **Update**: Run `python manage_translations.py update` to update existing `.po` files
-4. **Translation**: Edit the `.po` files with translations
-5. **Compilation**: Run `python manage_translations.py compile` to create `.mo` files
-6. **Testing**: Test the translations in the application
+### Current languages
 
-### Current Supported Languages
-
-- **English (en)**: Default language
-- **French (fr)**: Full translation available
+- **English (en)** — default
+- **French (fr)** — full catalog

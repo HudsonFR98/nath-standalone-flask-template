@@ -1,6 +1,14 @@
 ---
 # Docker installation tasks
 
+# apt_repository needs /usr/bin/gpg. Debian 13 dropped apt-key and does not
+# install gpg by default; gnupg-agent alone does not provide the binary.
+- name: Install GnuPG for apt repository management
+  apt:
+    name: gnupg
+    state: present
+    update_cache: yes
+
 - name: Remove legacy Docker repository definitions
   apt_repository:
     repo: "{{ item }}"
@@ -17,13 +25,11 @@
 
 - name: Install Docker dependencies
   apt:
-    name: 
-      - apt-transport-https
+    name:
       - ca-certificates
       - curl
-      - gnupg-agent
+      - gnupg
       - openssl
-      - software-properties-common
     state: present
     update_cache: yes
 
@@ -41,7 +47,7 @@
 
 - name: Add Docker repository
   apt_repository:
-    repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable
+    repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
     filename: docker
     state: present
 

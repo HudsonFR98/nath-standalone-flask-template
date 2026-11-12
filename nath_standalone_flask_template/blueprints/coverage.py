@@ -21,7 +21,7 @@ def index():
         HTML coverage report or 404 if not in test context or report not found
     """
     # Only allow access in test context
-    if config.CONTEXT != 'test':
+    if config.CONTEXT != 'integration':
         abort(404)
     
     # Check multiple possible coverage report locations
@@ -59,7 +59,7 @@ def static_files(filename):
         Static file or 404 if not in test context or file not found
     """
     # Only allow access in test context
-    if config.CONTEXT != 'test':
+    if config.CONTEXT != 'integration':
         abort(404)
     
     # Check multiple possible coverage report locations

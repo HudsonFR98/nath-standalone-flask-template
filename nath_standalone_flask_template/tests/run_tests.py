@@ -27,7 +27,7 @@ def get_database_host(context):
     Get the appropriate database host based on the environment context.
     
     Args:
-        context (str): The environment context (dev, test, demo, prod)
+        context (str): The environment context (dev, integration, validation, prod)
     
     Returns:
         str: Database host name following the new naming scheme
@@ -36,7 +36,7 @@ def get_database_host(context):
         # Development environment uses external database specified by DB_IP
         return os.environ.get('DB_IP', 'nsft_db_dev')
     else:
-        # Test, demo, and prod environments use the new container naming scheme
+        # Integration, validation, and prod use the container naming scheme
         return f'nsft_db_{context}'
 
 
@@ -61,13 +61,13 @@ def main():
         int: Exit code from pytest (0 for success, non-zero for failure)
     
     Environment Variables Set:
-        NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: Set to 'test' for test environment
+        NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: Context the suite runs in (integration on CI)
         DB_IP: Set to appropriate database host based on context
         COVERAGE_FILE: Points to temporary coverage data file
         PYTEST_CACHE_DIR: Points to temporary pytest cache directory
     """
-    # Step 1: Get context from environment or default to 'test'
-    context = os.environ.get('NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT', 'test')
+    # Step 1: Get context from environment or default to integration
+    context = os.environ.get('NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT', 'integration')
     print(f"Running tests in context: {context}")
     
     # Step 2: Set environment variables for test execution
@@ -103,6 +103,8 @@ def main():
         '-v',                                    # Verbose output
         'nath_standalone_flask_template/tests/'           # Test directory to run
     ]
+    cmd.extend(sys.argv[1:])
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     
     # Step 7: Display execution information
     print("Running tests with command:", ' '.join(cmd))
@@ -121,7 +123,7 @@ def main():
     # Use Popen to get real-time output while also capturing it
     process = subprocess.Popen(
         cmd, 
-        cwd='/opt/nath_standalone_flask_template', 
+        cwd=repo_root, 
         stdout=subprocess.PIPE, 
         stderr=subprocess.PIPE,
         text=True,
@@ -169,8 +171,8 @@ def main():
     
     result = Result(result, result_stdout, result_stderr)
     
-    # Step 9: Save test output to file for web interface (only in test context)
-    if context == 'test':
+    # Step 9: Save test output to file for web interface (integration and dev)
+    if context in ('integration', 'dev'):
         test_output_file = '/opt/nath_standalone_flask_template_data/test_output.log'
         try:
             with open(test_output_file, 'w', encoding='utf-8') as f:

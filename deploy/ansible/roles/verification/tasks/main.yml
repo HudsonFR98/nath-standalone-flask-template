@@ -1,34 +1,13 @@
 ---
-# Verification and testing tasks
+# HTTP reachability check after the stack is up.
+# The integration test suite runs in a later CI job (ansible/run_tests.yml).
 
-- name: Verify network connectivity
-  shell: |
-    docker exec {{ container_name }} curl -I http://{{ db_container_name }}:5433
-  register: curl_result
-  changed_when: false
-  failed_when: false
-
-- name: Run pytest in test container
-  community.docker.docker_container_exec:
-    container: "{{ container_name }}"
-    command: >
-      bash -c "NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=test DB_IP={{ db_container_name }}
-      /opt/env3/nath_standalone_flask_template/bin/python
-      nath_standalone_flask_template/tests/run_tests.py"
-  register: pytest_result
-  when: context == 'test'
-
-- name: Show pytest output
-  debug:
-    msg: "{{ pytest_result.stdout_lines }}"
-  when: context == 'test'
-
-- name: Show pytest errors if any
-  debug:
-    msg: "{{ pytest_result.stderr_lines }}"
-  when: context == 'test' and pytest_result.stderr_lines | length > 0
-
-- name: Fail if tests fail
-  fail:
-    msg: "Tests failed with exit code {{ pytest_result.rc }}"
-  when: context == 'test' and pytest_result.rc != 0 
+- name: Verify nginx answers on port 80
+  ansible.builtin.uri:
+    url: "http://127.0.0.1/health"
+    status_code: 200
+    follow_redirects: none
+  register: health
+  retries: 12
+  delay: 5
+  until: health.status == 200

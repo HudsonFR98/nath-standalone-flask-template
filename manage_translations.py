@@ -21,73 +21,115 @@ import sys
 import subprocess
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent
+TRANSLATIONS = ROOT / "nath_standalone_flask_template" / "translations"
+BABEL_CFG = ROOT / "babel.cfg"
 
-def run_command(cmd, description):
+
+def _pybabel_argv(*args: str) -> list[str]:
+    """Use pybabel from the same venv as this interpreter (Docker dev, CI, host venv)."""
+    pybabel = Path(sys.executable).with_name("pybabel")
+    if pybabel.is_file():
+        return [str(pybabel), *args]
+    return [sys.executable, "-m", "babel.messages.frontend", *args]
+
+
+def run_command(argv: list[str], description: str) -> bool:
     """Run a command and handle errors"""
     print(f"Running: {description}")
     try:
-        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        subprocess.run(
+            argv,
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+        )
         print(f"✓ {description} completed successfully")
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ {description} failed:")
-        print(f"  Error: {e.stderr}")
+        print(f"  Error: {e.stderr or e.stdout}")
         return False
 
 
-def extract_strings():
+def extract_strings() -> bool:
     """Extract translatable strings from the codebase"""
     return run_command(
-        "pybabel extract -F babel.cfg -k _ -o nath_standalone_flask_template/translations/messages.pot nath_standalone_flask_template",
-        "Extracting translatable strings"
+        _pybabel_argv(
+            "extract",
+            "-F",
+            str(BABEL_CFG.relative_to(ROOT)),
+            "-k",
+            "_",
+            "-o",
+            str(TRANSLATIONS / "messages.pot"),
+            "nath_standalone_flask_template",
+        ),
+        "Extracting translatable strings",
     )
 
 
-def update_translations():
+def update_translations() -> bool:
     """Update existing translation files with new strings"""
     success = True
-    for lang in ['en', 'fr']:
-        lang_dir = f"nath_standalone_flask_template/translations/{lang}/LC_MESSAGES"
-        if os.path.exists(lang_dir):
+    pot = TRANSLATIONS / "messages.pot"
+    for lang in ("en", "fr"):
+        lang_dir = TRANSLATIONS / lang / "LC_MESSAGES"
+        if lang_dir.is_dir():
             success &= run_command(
-                f"pybabel update -i nath_standalone_flask_template/translations/messages.pot -d nath_standalone_flask_template/translations -l {lang}",
-                f"Updating {lang} translations"
+                _pybabel_argv(
+                    "update",
+                    "-i",
+                    str(pot),
+                    "-d",
+                    str(TRANSLATIONS),
+                    "-l",
+                    lang,
+                ),
+                f"Updating {lang} translations",
             )
     return success
 
 
-def compile_translations():
+def compile_translations() -> bool:
     """Compile all translation files"""
     return run_command(
-        "pybabel compile -d nath_standalone_flask_template/translations",
-        "Compiling translation files"
+        _pybabel_argv("compile", "-d", str(TRANSLATIONS)),
+        "Compiling translation files",
     )
 
 
-def init_language(lang):
+def init_language(lang: str) -> bool:
     """Initialize a new language"""
     if not lang:
         print("Error: Language code required (e.g., 'es' for Spanish)")
         return False
-    
-    # Create language directory
-    lang_dir = f"nath_standalone_flask_template/translations/{lang}/LC_MESSAGES"
-    os.makedirs(lang_dir, exist_ok=True)
-    
-    # Initialize translation file
+
+    lang_dir = TRANSLATIONS / lang / "LC_MESSAGES"
+    lang_dir.mkdir(parents=True, exist_ok=True)
+
     return run_command(
-        f"pybabel init -i nath_standalone_flask_template/translations/messages.pot -d nath_standalone_flask_template/translations -l {lang}",
-        f"Initializing {lang} translation file"
+        _pybabel_argv(
+            "init",
+            "-i",
+            str(TRANSLATIONS / "messages.pot"),
+            "-d",
+            str(TRANSLATIONS),
+            "-l",
+            lang,
+        ),
+        f"Initializing {lang} translation file",
     )
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         print(__doc__)
         return
-    
+
     command = sys.argv[1]
-    
+
     if command == "extract":
         extract_strings()
     elif command == "update":
@@ -109,4 +151,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

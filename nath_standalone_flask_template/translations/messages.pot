@@ -1,14 +1,14 @@
 # Translations template for PROJECT.
-# Copyright (C) 2025 ORGANIZATION
+# Copyright (C) 2026 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-01 19:49+0200\n"
+"POT-Creation-Date: 2026-11-12 16:21+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,75 +17,77 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: nath_standalone_flask_template/templates/base.html:17
+#: nath_standalone_flask_template/templates/base.html:16
 msgid "Nath Standalone Flask Template"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:22
+#: nath_standalone_flask_template/templates/base.html:21
 msgid ""
 "Nath Standalone\n"
 "      Flask Template"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:44
+#: nath_standalone_flask_template/templates/base.html:43
 msgid "Example"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:47
+#: nath_standalone_flask_template/templates/base.html:46
 #: nath_standalone_flask_template/templates/login.html:14
 msgid "Login"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:54
+#: nath_standalone_flask_template/templates/base.html:53
 msgid "Tests"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:57
+#: nath_standalone_flask_template/templates/base.html:56
 msgid "Coverage"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:58
+#: nath_standalone_flask_template/templates/base.html:57
 msgid "Test Output"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:66
+#: nath_standalone_flask_template/templates/base.html:65
 msgid "Administration"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:69
+#: nath_standalone_flask_template/templates/base.html:68
 msgid "Users"
 msgstr ""
 
 #: nath_standalone_flask_template/templates/admin/tasks.html:3
-#: nath_standalone_flask_template/templates/base.html:70
+#: nath_standalone_flask_template/templates/base.html:69
+#: nath_standalone_flask_template/templates/doc/index.html:79
+#: nath_standalone_flask_template/templates/doc/index.html:141
 msgid "Async Tasks"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:71
+#: nath_standalone_flask_template/templates/base.html:70
 msgid "Logs"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:78
+#: nath_standalone_flask_template/templates/base.html:77
 msgid "Logout"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:83
+#: nath_standalone_flask_template/templates/base.html:82
 msgid "Help"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:87
+#: nath_standalone_flask_template/templates/base.html:86
 msgid "Toggle theme"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:96
+#: nath_standalone_flask_template/templates/base.html:95
 msgid "Language"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:183
+#: nath_standalone_flask_template/templates/base.html:182
 msgid "Switch to light mode"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/base.html:186
+#: nath_standalone_flask_template/templates/base.html:185
 msgid "Switch to dark mode"
 msgstr ""
 
@@ -369,123 +371,216 @@ msgstr ""
 msgid "Welcome to the Dashboard"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:79
+#: nath_standalone_flask_template/templates/doc/index.html:50
+msgid "Documentation"
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:59
 msgid "Search documentation..."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:87
+#: nath_standalone_flask_template/templates/doc/index.html:67
+#: nath_standalone_flask_template/templates/doc/index.html:95
 msgid "Overview"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:90
-#: nath_standalone_flask_template/templates/doc/index.html:125
+#: nath_standalone_flask_template/templates/doc/index.html:70
+#: nath_standalone_flask_template/templates/doc/index.html:103
 msgid "User Management"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:93
-#: nath_standalone_flask_template/templates/doc/index.html:136
+#: nath_standalone_flask_template/templates/doc/index.html:73
+#: nath_standalone_flask_template/templates/doc/index.html:112
 msgid "Database"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:96
-#: nath_standalone_flask_template/templates/doc/index.html:147
+#: nath_standalone_flask_template/templates/doc/index.html:76
+#: nath_standalone_flask_template/templates/doc/index.html:121
 msgid "Configuration"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:99
-#: nath_standalone_flask_template/templates/doc/index.html:159
+#: nath_standalone_flask_template/templates/doc/index.html:82
+#: nath_standalone_flask_template/templates/doc/index.html:154
 msgid "Deployment"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:113
-msgid "Welcome to the Nath Standalone Flask Template Documentation"
+#: nath_standalone_flask_template/templates/doc/index.html:97
+msgid ""
+"Standalone Flask template with authentication, admin tools, PostgreSQL, "
+"Redis, scheduled background work, and a GitLab-driven VM pipeline."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:99
+msgid ""
+"Use the admin menu for users, logs, and async tasks. This page summarizes"
+" how the stack fits together."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:105
+msgid ""
+"Flask-Login sessions; passwords stored as Werkzeug hashes (scrypt or "
+"pbkdf2)."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:106
+msgid "Roles and permissions on the User model; admin UI under /admin."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:107
+msgid ""
+"The default admin account is created at startup from environment "
+"variables (ADMIN_USER_*)."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:114
+msgid ""
+"PostgreSQL with SQLAlchemy; schema changes via Alembic (see MIGRATIONS.md"
+" in the repo)."
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:115
-msgid ""
-"This documentation provides information about the Nath Standalone Flask "
-"Template application, its features, and how to use it."
+msgid "Application DB name is NSFT_DB_NAME; Postgres superuser DB is POSTGRES_DB."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:118
-msgid "Note"
+#: nath_standalone_flask_template/templates/doc/index.html:116
+msgid ""
+"VM deployments keep data on a host volume; CI integration VMs are "
+"destroyed after tests."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:119
+#: nath_standalone_flask_template/templates/doc/index.html:122
 msgid ""
-"This documentation is customizable and can be edited to include specific "
-"information about your implementation."
+"NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT selects the config class in "
+"lib/_config.py:"
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:126
-msgid ""
-"The application includes a comprehensive user management system with "
-"role-based permissions:"
+msgid "Context"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:128
-msgid "User authentication and authorization"
+#: nath_standalone_flask_template/templates/doc/index.html:127
+msgid "Use"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:129
-msgid "Role-based access control"
+#: nath_standalone_flask_template/templates/doc/index.html:131
+msgid "Local Docker Compose"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:130
-msgid "Permission management"
+#: nath_standalone_flask_template/templates/doc/index.html:132
+msgid "CI disposable VM; TESTING enabled"
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:133
+msgid "CI pre-production VM"
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:134
+msgid "Production VM"
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:137
 msgid ""
-"The application uses PostgreSQL as its database with Alembic for "
-"migrations:"
+"Set DB_IP to the Postgres host (Compose service name or container name on"
+" a VM). All deployed contexts use HTTP on port 80 behind a proxy"
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:139
-msgid "Automatic database migrations"
+#: nath_standalone_flask_template/templates/doc/index.html:142
+msgid ""
+"Background work runs inside the app process with APScheduler "
+"(lib/task_scheduler.py), not a separate worker container."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:140
-msgid "SQLAlchemy ORM for database access"
+#: nath_standalone_flask_template/templates/doc/index.html:144
+msgid ""
+"The scheduler starts when the Flask app loads; jobs are registered with "
+"register_task or the @scheduled_task decorator."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:141
-msgid "Efficient data management"
+#: nath_standalone_flask_template/templates/doc/index.html:145
+msgid ""
+"Cron schedules and metadata live in the scheduled_tasks table; each run "
+"is logged in task_executions (status, duration, errors)."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:146
+msgid ""
+"Built-in job: database_backup runs daily at 04:00 (cron 0 4 * * *), "
+"creates a SQL backup and prunes backups older than seven days."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:147
+msgid ""
+"Failed runs can trigger a Telegram alert when TELEGRAM_BOT_TOKEN and "
+"TELEGRAM_CHAT_ID are set."
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:148
-msgid "The application supports multiple environments:"
+msgid "Admins can inspect schedules and history under Admin → Async Tasks."
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:150
-msgid "Development"
+msgid ""
+"Add a new recurring task: define a function, decorate it with "
+"@scheduled_task with a cron expression, and restart the app so "
+"registration runs. Use the same pattern as database_backup in "
+"task_scheduler.py."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:151
-msgid "Testing"
+#: nath_standalone_flask_template/templates/doc/index.html:155
+msgid ""
+"GitLab CI stages: docker → integration → validation → prod. Each deployed"
+" environment gets its own VM (Terraform + Pi-hole DNS + Ansible)."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:152
-msgid "Demo"
+#: nath_standalone_flask_template/templates/doc/index.html:157
+msgid ""
+"integration: create VM, deploy, run pytest in the container, destroy VM "
+"(unless INTEGRATION_KEEP_VM=true)."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:153
-msgid "Production"
+#: nath_standalone_flask_template/templates/doc/index.html:158
+msgid ""
+"validation: same flow after integration tests; no automated test job; "
+"destroy is manual."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:159
+msgid "prod: master branch only; deploy and destroy are manual."
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:160
-msgid "The application can be deployed using Docker:"
+msgid "Ansible connects as user Nath; nginx listens on port 80 on every VM."
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:162
-msgid "Docker Compose for local development"
+msgid "CI/CD variables (project)"
 msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:163
-msgid "Ansible for production deployment"
+msgid ""
+"Set variables in GitLab → Settings → CI/CD. Shared infra vars use scope "
+"*; per-env secrets use scope integration, validation, or prod."
 msgstr ""
 
-#: nath_standalone_flask_template/templates/doc/index.html:164
-msgid "CI/CD pipeline integration"
+#: nath_standalone_flask_template/templates/doc/index.html:165
+msgid ""
+"PROXMOX_*, PIHOLE_*, GITLAB_CA_FILE (file), TELEGRAM_*, IP_POOL_*: not "
+"protected (needed on feature branches)."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:166
+msgid ""
+"INTEGRATION_* and VALIDATION_*: not protected (pipelines run on merge "
+"requests and feature branches)."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:167
+msgid "PROD_*: protected; available on the default branch only."
+msgstr ""
+
+#: nath_standalone_flask_template/templates/doc/index.html:169
+msgid ""
+"Details and job graph: docs/infra_automation/ in the repository and the "
+"header of .gitlab-ci.yml."
 msgstr ""
 

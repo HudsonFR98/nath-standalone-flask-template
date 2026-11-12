@@ -6,8 +6,9 @@ This directory contains the modularized Ansible deployment configuration for the
 
 ```
 deploy/ansible/
-├── docker_deploy.yml          # Main playbook
-├── inventory.ini              # Host inventory
+├── docker_deploy.yml          # Deploy / update the stack
+├── run_tests.yml              # Pytest inside the deployed app container
+├── inventory.ini              # [integration] [validation] [prod]
 ├── requirements.yml           # Ansible dependencies
 ├── README.md                 # This file
 └── roles/                    # Modular roles
@@ -39,25 +40,23 @@ deploy/ansible/
 - Creates log files with correct ownership
 
 ### registry
-- Authenticates with GitLab Container Registry
-- Handles Docker login for image pulling
+- Installs the GitLab CA (`gitlab_ca_file` / `GITLAB_CA_FILE`) for Docker and the system trust store
+- Logs in to the GitLab Container Registry and the Dependency Proxy
 
 ### files
-- Copies initialization scripts to remote server
-- Copies SQL reset script
-- Copies Nginx configuration files
+- Copies initialization scripts to the remote server
+- Copies the SQL reset script
+- Copies `deploy/nginx_<context>.conf`
 
 ### containers
-- Manages Docker containers (stop, remove, create)
-- Creates Docker network
-- Runs PostgreSQL, application, and Nginx containers
-- Handles health checks and container readiness
-- Manages different deployment scenarios (deploy vs update)
+- Renders Compose and starts PostgreSQL, Redis, the app, and nginx
+- Publishes port 80 on every environment
+- Keeps the database volume on `update`
 
 ### verification
-- Verifies network connectivity between containers
-- Runs tests in test environment
-- Displays test results and handles failures
+- Checks that nginx answers on port 80 (`/health` returns 200)
+
+Integration tests are a separate playbook, `run_tests.yml`, invoked with `ansible_deploy.py --action test`.
 
 ## Usage
 

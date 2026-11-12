@@ -67,6 +67,6 @@ if [ "$NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT" = "dev" ]; then
     exec /opt/env3/nath_standalone_flask_template/bin/python nath_standalone_flask_template_app.py
 else
     echo "Starting Gunicorn production server..."
-    # Use Gunicorn for production/demo/test modes
+    # Use Gunicorn for integration, validation, and production
     exec /opt/env3/nath_standalone_flask_template/bin/gunicorn --bind 0.0.0.0:8080 --log-level=debug --capture-output --enable-stdio-inheritance nath_standalone_flask_template_app:app
 fi

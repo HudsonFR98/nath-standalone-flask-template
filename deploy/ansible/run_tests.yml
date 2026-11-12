@@ -1,0 +1,52 @@
+---
+# Run the Flask pytest suite inside the app container already deployed by
+# docker_deploy.yml. Used by the `test_integration` CI job; nothing here
+# touches the containers, the database volume or the nginx config.
+#
+#   python3 deploy/ansible_deploy.py --action test --env integration --ansible-user Nath
+#
+# ansible_deploy.py sets ANSIBLE_CALLBACK_RESULT_FORMAT=yaml for this action.
+
+- name: Run nath_standalone_flask_template tests inside the deployed container
+  hosts: "{{ target_host }}"
+  remote_user: "{{ ansible_user | default('Nath') }}"
+  become: yes
+  vars:
+    context: "{{ context }}"
+    app_name: "nsft"
+    container_name: "{{ app_name }}_app_{{ context }}"
+    app_dir: /opt/nath_standalone_flask_template
+    python_bin: /opt/env3/nath_standalone_flask_template/bin/python
+    test_argv: "{{ ['docker', 'exec', '--workdir', app_dir, container_name, python_bin, 'nath_standalone_flask_template/tests/run_tests.py'] + (test_labels | default('') | split) }}"
+
+  tasks:
+    - name: Check that the app container is running
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: app_info
+
+    - name: Fail if the app container is not running
+      fail:
+        msg: "App container {{ container_name }} is not running; deploy {{ context }} first"
+      when: not app_info.exists or app_info.container.State.Status != "running"
+
+    - name: Run the Flask test suite
+      ansible.builtin.command:
+        argv: "{{ test_argv }}"
+      register: test_run
+      changed_when: false
+      failed_when: false
+
+    - name: Flask test output
+      ansible.builtin.debug:
+        msg: "{{ test_run.stdout | default('') }}"
+
+    - name: Flask test errors
+      ansible.builtin.debug:
+        msg: "{{ test_run.stderr }}"
+      when: test_run.stderr | default('') | length > 0
+
+    - name: Fail the play if the test suite failed
+      ansible.builtin.fail:
+        msg: "run_tests.py exited with code {{ test_run.rc }} in {{ container_name }}"
+      when: test_run.rc != 0
