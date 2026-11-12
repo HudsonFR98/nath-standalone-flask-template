@@ -1,5 +1,57 @@
 ---
-# Log in to the GitLab Container Registry (app image) and to the Dependency Proxy host (Docker Hub pulls)
+# Log in to the GitLab Container Registry (app image) and to the Dependency Proxy host (Docker Hub pulls).
+# GitLab's certificate is self-signed. Docker on the VM will not log in until that
+# CA is installed under /etc/docker/certs.d and in the system trust store.
+
+- name: Require the GitLab CA file from the controller
+  ansible.builtin.assert:
+    that:
+      - gitlab_ca_file is defined
+      - gitlab_ca_file | length > 0
+    fail_msg: >-
+      gitlab_ca_file is missing. Set the GITLAB_CA_FILE CI variable
+      (File type, public cert only) or pass --gitlab-ca-file.
+
+- name: Registry names that must trust the GitLab CA
+  ansible.builtin.set_fact:
+    gitlab_docker_registries: "{{ [
+      container_registry_server,
+      dependency_proxy_server,
+      container_registry_server.split(':')[0],
+      dependency_proxy_server.split(':')[0]
+    ] | unique }}"
+
+- name: Ensure Docker certificate directories exist
+  ansible.builtin.file:
+    path: "/etc/docker/certs.d/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ gitlab_docker_registries }}"
+
+- name: Install GitLab CA for Docker registry hosts
+  ansible.builtin.copy:
+    src: "{{ gitlab_ca_file }}"
+    dest: "/etc/docker/certs.d/{{ item }}/ca.crt"
+    mode: "0644"
+  loop: "{{ gitlab_docker_registries }}"
+  register: docker_ca
+
+- name: Install GitLab CA into the system trust store
+  ansible.builtin.copy:
+    src: "{{ gitlab_ca_file }}"
+    dest: /usr/local/share/ca-certificates/gitlab-ca.crt
+    mode: "0644"
+  register: system_ca
+
+- name: Refresh the system CA bundle
+  ansible.builtin.command: update-ca-certificates
+  when: system_ca.changed
+
+- name: Restart Docker so it loads the GitLab CA
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+  when: docker_ca.changed or system_ca.changed
 
 - name: Log in to GitLab Container Registry
   docker_login:

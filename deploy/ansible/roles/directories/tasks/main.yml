@@ -12,7 +12,6 @@
     - /var/log/nath_standalone_flask_template
     - /var/backups/nath_standalone_flask_template
     - /opt/nath_standalone_flask_template_data
-    - /opt/nath_standalone_flask_template_data/ssl
     - /opt/nath_standalone_flask_template_data/postgresql/15/main
     - /var/log/nginx
     - /etc/letsencrypt

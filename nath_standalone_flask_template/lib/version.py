@@ -5,8 +5,8 @@ from datetime import datetime
 def get_version():
     """
     Get the version based on context:
-    - DEV: Only setup.py version (e.g., v1.0.0)
-    - TEST/DEMO/PROD: setup.py version + build date (e.g., v1.0.0+20260626.164400)
+    - DEV: Only setup.py version (e.g., v2.0.0)
+    - INTEGRATION/VALIDATION/PROD: setup.py version + build date (e.g., v2.0.0+20260626.164400)
     """
     try:
         # Read setup.py to extract version

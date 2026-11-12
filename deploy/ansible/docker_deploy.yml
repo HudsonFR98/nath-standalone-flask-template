@@ -3,7 +3,7 @@
 
 - name: Deploy nath_standalone_flask_template using Docker
   hosts: "{{ target_host }}"
-  remote_user: root
+  remote_user: "{{ ansible_user | default('Nath') }}"
   become: yes
   vars:
     deploy_action: "{{ deploy_action }}"

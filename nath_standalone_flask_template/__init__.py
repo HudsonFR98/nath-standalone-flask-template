@@ -220,8 +220,8 @@ def create_app():
     app.register_blueprint(doc, url_prefix='/doc/')
     app.register_blueprint(i18n, url_prefix='/i18n/')
     app.register_blueprint(admin, url_prefix='/admin/')
-    # Register coverage blueprint only in test context
-    if config.CONTEXT in ['test', 'dev']:
+    # Register coverage blueprint only in integration and local dev
+    if config.CONTEXT in ['integration', 'dev']:
         app.register_blueprint(coverage, url_prefix='/coverage/')
     app.register_blueprint(test_output, url_prefix='/tests/')
     # app.register_blueprint(rest, url_prefix='/rest')

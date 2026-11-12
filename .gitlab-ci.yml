@@ -1,16 +1,139 @@
 variables:
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  # Upstream Docker Hub images (python, docker, postgres, nginx) via GitLab Dependency Proxy.
+  # DIRECT = parent group of this project (e.g. homelab). Requires GitLab 15.7+.
+  # Override DEP_PROXY_PREFIX in CI/CD variables if you need CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX instead.
   DEP_PROXY_PREFIX: $CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX
 
+# ---------------------------------------------------------------------------
+# Environments (see docs/infra_automation/04_gitlab_ci.md)
+#
+#   integration  branch push or MR   create VM -> deploy -> run_tests.py -> destroy VM
+#   validation   branch push or MR   create VM -> deploy (pre-production, no tests)
+#   prod         master only         create VM -> deploy (manual gate)
+#
+# Each environment has its own VM (serv-nath-nsft-<env>-NN), Pi-hole record,
+# GitLab Terraform state (<env>-vm) and prefixed CI variables.
+#
+# Required CI/CD variables (Settings > CI/CD > Variables):
+#   shared:   PROXMOX_VE_ENDPOINT, PROXMOX_VE_API_TOKEN (masked), PROXMOX_VE_INSECURE,
+#             PROXMOX_NODE_NAME, PROXMOX_TEMPLATE_VM_ID, PROXMOX_DATASTORE_ID,
+#             PIHOLE_URL, PIHOLE_APP_PASSWORD (masked), GITLAB_CA_FILE (file),
+#             TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+#             optional: IP_POOL_START, IP_POOL_END, IP_POOL_RESERVED (one pool for all envs)
+#   per env (<ENV> = INTEGRATION | VALIDATION | PROD):
+#             <ENV>_VM_FQDN, <ENV>_POSTGRES_USER, <ENV>_POSTGRES_PASSWORD (masked),
+#             <ENV>_POSTGRES_DB, <ENV>_NSFT_DB_NAME, <ENV>_SECRET_KEY (masked),
+#             <ENV>_ADMIN_USER_USERNAME, <ENV>_ADMIN_USER_PASSWORD (masked),
+#             <ENV>_ADMIN_USER_EMAIL, <ENV>_ADMIN_USER_FIRST_NAME, <ENV>_ADMIN_USER_LAST_NAME
+#             optional: <ENV>_VM_GENERATION_SEED
+#   integration runs on every branch: its variables (and the shared Proxmox/Pi-hole
+#   ones) must NOT be "protected", or feature-branch pipelines cannot see them.
+#   Scope variables to their GitLab environment (integration/validation/prod)
+#   when the same name must hold different values.
+#   INTEGRATION_KEEP_VM=true turns the automatic destroy into a manual job.
+# ---------------------------------------------------------------------------
+
+# One pipeline per push. A branch that already has an open merge request runs
+# the merge-request pipeline only, so integration/validation are not created twice.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
 
 stages:
-  - populate-proxy
   - docker
-  - test
-  - demo
+  - integration
+  - validation
   - prod
 
-.deploy_via_ansible: &deploy_via_ansible
+# ===========================================================================
+# Base templates
+# ===========================================================================
+
+# Jobs with no rules are left out of merge-request pipelines. Every real job
+# extends one of these so `needs:` always points at a job that exists.
+.rules_branch_and_mr:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+.rules_branch_and_mr_manual:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH
+      when: manual
+      allow_failure: true
+
+.rules_master:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.rules_master_manual:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+.infra_python:
+  image: $DEP_PROXY_PREFIX/python:3.11-slim
+  tags:
+    - docker
+
+.terraform:
+  image:
+    name: $DEP_PROXY_PREFIX/hashicorp/terraform:1.16
+    entrypoint: [""]
+  tags:
+    - docker
+  variables:
+    # Concrete jobs set ENV_NAME. Each environment has its own root so sizing
+    # (memory, disk, cores) can differ. Resource addresses stay
+    # proxmox_virtual_environment_vm.app, so existing GitLab states are reused.
+    TF_ROOT: deploy/terraform/${ENV_NAME}
+    TF_IN_AUTOMATION: "true"
+    TF_INPUT: "0"
+    TF_HTTP_LOCK_METHOD: POST
+    TF_HTTP_UNLOCK_METHOD: DELETE
+    TF_HTTP_RETRY_WAIT_MIN: "5"
+    TF_HTTP_USERNAME: gitlab-ci-token
+    TF_HTTP_PASSWORD: ${CI_JOB_TOKEN}
+    TF_VAR_node_name: ${PROXMOX_NODE_NAME}
+    TF_VAR_template_vm_id: ${PROXMOX_TEMPLATE_VM_ID}
+    TF_VAR_datastore_id: ${PROXMOX_DATASTORE_ID}
+  before_script:
+    - apk add --no-cache python3 openssh-client
+    - test -n "$ENV_NAME" || { echo "ENV_NAME is not set"; exit 1; }
+    - test -n "$VM_FQDN" || { echo "VM_FQDN is not set (CI variable <ENV>_VM_FQDN missing)"; exit 1; }
+    - test -d "$TF_ROOT" || { echo "No Terraform root at $TF_ROOT"; exit 1; }
+    # One GitLab-managed state per environment: integration-vm, validation-vm, prod-vm.
+    - export TF_STATE_NAME="${ENV_NAME}-vm"
+    - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
+    - export TF_HTTP_LOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+    - export TF_HTTP_UNLOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+    - export TF_VAR_env="$ENV_NAME"
+    - export TF_VAR_fqdn="$VM_FQDN"
+    # Upper-cased env name used as prefix of the dotenv keys (PROD_VM_IP, INTEGRATION_VM_IP, ...).
+    - export ENV_PREFIX=$(printf '%s' "$ENV_NAME" | tr 'a-z-' 'A-Z_')
+    - echo "environment=${ENV_NAME} state=${TF_STATE_NAME} fqdn=${VM_FQDN}"
+    # Self-signed GitLab cert (CN=gitlab.nath-server.home). The terraform image
+    # does not use the runner host trust store. GITLAB_CA_FILE is a File-type
+    # CI variable containing /etc/gitlab/ssl/gitlab.nath-server.home.crt (public
+    # cert only, never the .key).
+    - |
+      if [ -n "${GITLAB_CA_FILE:-}" ] && [ -f "$GITLAB_CA_FILE" ]; then
+        export TF_HTTP_CLIENT_CA_CERTIFICATE_PEM="$(cat "$GITLAB_CA_FILE")"
+      else
+        echo "GITLAB_CA_FILE is unset; terraform will reject the GitLab certificate"
+      fi
+    - cd $TF_ROOT
+    - terraform init -input=false -reconfigure
+
+.ssh_setup:
   image: $DEP_PROXY_PREFIX/python:3.11-slim
   before_script:
     - apt-get update
@@ -23,100 +146,403 @@ stages:
       export ANSIBLE_PRIVATE_KEY_FILE=~/.ssh/id_rsa
       ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
       chmod 644 ~/.ssh/known_hosts
+  tags:
+    - docker
+
+# ===========================================================================
+# Per-environment job templates. Concrete jobs set:
+#   ENV_NAME   integration | validation | prod
+#   VM_FQDN    $<ENV>_VM_FQDN
+# plus stage / needs / environment / resource_group.
+# ===========================================================================
+
+# Reserve (or reuse) the environment's IP in Pi-hole. The Pi-hole record is the
+# reservation; the chosen address is exported to later jobs through dotenv
+# (<ENV>_VM_IP, <ENV>_VM_FQDN, <ENV>_VM_IP_REUSED).
+.allocate_ip:
+  extends: .infra_python
   script:
-    - python3 deploy/ansible_deploy.py --action deploy --env $CONTEXT --docker-image $DOCKER_IMAGE --docker-registry $DEP_PROXY_PREFIX --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD --container-registry-server $CI_REGISTRY --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD --postgres-user $POSTGRES_USER --postgres-password $POSTGRES_PASSWORD --postgres-db $POSTGRES_DB --nsft-db-name $NSFT_DB_NAME --secret-key $SECRET_KEY --telegram-bot-token $TELEGRAM_BOT_TOKEN --telegram-chat-id $TELEGRAM_CHAT_ID --admin-user-username "${ADMIN_USER_USERNAME:-admin}" --admin-user-password "$ADMIN_USER_PASSWORD" --admin-user-first-name "${ADMIN_USER_FIRST_NAME:-Nathanaël}" --admin-user-last-name "${ADMIN_USER_LAST_NAME:-Debanne}" --admin-user-email "${ADMIN_USER_EMAIL:-natha.debanne@gmail.com}"
+    - apt-get update && apt-get install -y --no-install-recommends iputils-ping
+    - >
+      python3 deploy/infra_deploy.py allocate-ip
+      --env "$ENV_NAME"
+      --fqdn "$VM_FQDN"
+      --pool-start "${IP_POOL_START:-}"
+      --pool-end "${IP_POOL_END:-}"
+      --reserved "${IP_POOL_RESERVED:-}"
+      --output infra.env
+    - cat infra.env
+  artifacts:
+    reports:
+      dotenv: infra.env
+    expire_in: 1 week
+
+# Create or converge the environment's VM with Terraform, then wait for cloud-init.
+# Concrete jobs set TF_VAR_vm_ip from the dotenv of their allocate job.
+.setup_vm:
+  extends: .terraform
+  variables:
+    # Placeholder so `terraform show`/refresh can evaluate the config before
+    # the real generation is computed from state (overridden below).
+    TF_VAR_vm_generation: "1"
+  script:
+    - 'test -n "$TF_VAR_vm_ip" || { echo "TF_VAR_vm_ip is empty: allocate job dotenv missing"; exit 1; }'
+    - terraform validate
+    # Sync state with Proxmox so a VM deleted by hand is detected, then decide the generation:
+    # live VM -> keep its number; VM gone -> N+1; empty state -> <ENV>_VM_GENERATION_SEED (default 1).
+    # Skip refresh-only when the VM is already absent (targeted destroy). Outputs still
+    # point at it, so Terraform builds a plan that is "known after apply" and refuses
+    # `apply -refresh-only` with "Cannot apply non-applyable plan".
+    - |
+      if terraform state list | grep -qx 'proxmox_virtual_environment_vm.app'; then
+        terraform apply -refresh-only -input=false -auto-approve
+      else
+        echo "VM absent from state; skipping refresh-only (generation counter is kept)"
+      fi
+    - terraform show -json > state.json
+    - export TF_VAR_vm_generation=$(python3 ${CI_PROJECT_DIR}/deploy/infra_deploy.py next-generation --env "$ENV_NAME" --state-json state.json --seed "${VM_GENERATION_SEED:-1}")
+    - echo "VM generation ${TF_VAR_vm_generation}"
+    # -detailed-exitcode: 0 = no change, 1 = error, 2 = changes pending
+    - |
+      set +e
+      terraform plan -input=false -out=tfplan -detailed-exitcode
+      plan_rc=$?
+      set -e
+      test "$plan_rc" != "1"
+      terraform show -json tfplan > tfplan.json
+      python3 ${CI_PROJECT_DIR}/deploy/infra_deploy.py guard-plan --plan-json tfplan.json
+      if [ "$plan_rc" = "2" ]; then terraform apply -input=false -auto-approve tfplan; else echo "Infrastructure up to date"; fi
+    - |
+      cat > ${CI_PROJECT_DIR}/vm.env <<EOF
+      ${ENV_PREFIX}_VM_ID=$(terraform output -raw vm_id)
+      ${ENV_PREFIX}_VM_NAME=$(terraform output -raw vm_name)
+      ${ENV_PREFIX}_VM_IP=$(terraform output -raw vm_ip)
+      ${ENV_PREFIX}_VM_FQDN=$(terraform output -raw fqdn)
+      ${ENV_PREFIX}_VM_GENERATION=$(terraform output -raw generation)
+      EOF
+    - cat ${CI_PROJECT_DIR}/vm.env
+    # Wait for sshd, then for cloud-init to finish (user Nath + runner key come from the template).
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh && cp /runner-ssh/id_rsa ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+    - >
+      python3 ${CI_PROJECT_DIR}/deploy/infra_deploy.py wait-ssh
+      --host "$(terraform output -raw vm_ip)" --user Nath --key ~/.ssh/id_rsa
+      --timeout 600 --cloud-init-wait
+  artifacts:
+    reports:
+      dotenv: vm.env
+    paths:
+      - $TF_ROOT/tfplan.json
+    expire_in: 1 week
+
+# Explicit destruction. -target keeps terraform_data.generation in state so the
+# next VM is numbered N+1. For validation/prod back up /var/backups on the VM first.
+.destroy_vm:
+  extends: .terraform
+  variables:
+    # Required by the module but irrelevant for a targeted destroy.
+    TF_VAR_vm_ip: "0.0.0.0"
+    TF_VAR_vm_generation: "1"
+  script:
+    - terraform destroy -input=false -auto-approve -target=proxmox_virtual_environment_vm.app
+    - python3 ${CI_PROJECT_DIR}/deploy/infra_deploy.py release-ip --fqdn "$VM_FQDN"
+
+# Deploy the application stack with Ansible on the environment's VM.
+# Secrets are read here, at job runtime (<ENV>_POSTGRES_PASSWORD, ...).
+# Copying them in a job `variables:` block happens before GitLab injects
+# environment-scoped CI variables, so those copies stay empty.
+.update_app:
+  extends: .ssh_setup
+  variables:
+    BUILD_DATE: $CI_PIPELINE_CREATED_AT
+  script:
+    - ENV_PREFIX=$(printf '%s' "$ENV_NAME" | tr 'a-z-' 'A-Z_')
+    - echo "Deploying ${ENV_NAME} to ${SSH_HOST} as Nath"; env | grep "^${ENV_PREFIX}_VM_" || true
+    - |
+      missing=
+      for suffix in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB NSFT_DB_NAME SECRET_KEY ADMIN_USER_USERNAME ADMIN_USER_PASSWORD ADMIN_USER_EMAIL; do
+        if [ -z "$(printenv "${ENV_PREFIX}_${suffix}" || true)" ]; then
+          missing="${missing} ${ENV_PREFIX}_${suffix}"
+        fi
+      done
+      if [ -n "$missing" ]; then
+        echo "Missing CI variables:${missing}"
+        echo "Scope must be All (*) or the GitLab environment '${ENV_NAME}'. Masked is fine; protected hides the variable on unprotected branches."
+        exit 1
+      fi
+    - >
+      python3 deploy/ansible_deploy.py --action update --env "$ENV_NAME" --ansible-user Nath
+      --docker-image $DOCKER_IMAGE --docker-registry $DEP_PROXY_PREFIX
+      --registry-username $CI_REGISTRY_USER --registry-password $CI_REGISTRY_PASSWORD
+      --container-registry-server $CI_REGISTRY
+      --dependency-proxy-server $CI_DEPENDENCY_PROXY_SERVER
+      --dependency-proxy-username $CI_DEPENDENCY_PROXY_USER
+      --dependency-proxy-password $CI_DEPENDENCY_PROXY_PASSWORD
+      --postgres-user "$(printenv "${ENV_PREFIX}_POSTGRES_USER")"
+      --postgres-password "$(printenv "${ENV_PREFIX}_POSTGRES_PASSWORD")"
+      --postgres-db "$(printenv "${ENV_PREFIX}_POSTGRES_DB")"
+      --nsft-db-name "$(printenv "${ENV_PREFIX}_NSFT_DB_NAME")"
+      --secret-key "$(printenv "${ENV_PREFIX}_SECRET_KEY")"
+      --telegram-bot-token "$(printenv TELEGRAM_BOT_TOKEN || true)"
+      --telegram-chat-id "$(printenv TELEGRAM_CHAT_ID || true)"
+      --admin-user-username "$(printenv "${ENV_PREFIX}_ADMIN_USER_USERNAME")"
+      --admin-user-password "$(printenv "${ENV_PREFIX}_ADMIN_USER_PASSWORD")"
+      --admin-user-first-name "$(printenv "${ENV_PREFIX}_ADMIN_USER_FIRST_NAME" || true)"
+      --admin-user-last-name "$(printenv "${ENV_PREFIX}_ADMIN_USER_LAST_NAME" || true)"
+      --admin-user-email "$(printenv "${ENV_PREFIX}_ADMIN_USER_EMAIL")"
+
+# ===========================================================================
+# docker
+# ===========================================================================
 
 build_docker:
+  extends: .rules_branch_and_mr
   stage: docker
   image: $DEP_PROXY_PREFIX/docker:28.1.1
   before_script:
+    # Push app image to the project Container Registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
-    - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER --password-stdin
+    # Pull base images through the group Dependency Proxy (Docker Hub pull-through cache)
+    - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login "$CI_DEPENDENCY_PROXY_SERVER" -u "$CI_DEPENDENCY_PROXY_USER" --password-stdin
   script:
     - docker info
-    - docker build --build-arg BASE_IMAGE=$DEP_PROXY_PREFIX/python:3.11-slim -t $DOCKER_IMAGE .
+    # --provenance=false: BuildKit otherwise pushes an OCI index (image + attestation).
+    # GitLab's registry then fails the first push with "blob unknown" and shows the tag as 1970-01-01.
+    - docker build --provenance=false --build-arg BASE_IMAGE=$DEP_PROXY_PREFIX/python:3.11-slim -t $DOCKER_IMAGE .
     - docker push $DOCKER_IMAGE
-  only:
-    - master
-    - tags
   tags:
     - docker
 
-pytest:
-  stage: test
-  <<: *deploy_via_ansible
-  variables:
-    SSH_HOST: nsft.test.nath-server.home
-    BUILD_DATE: $CI_PIPELINE_CREATED_AT
-    CONTEXT: test
-    POSTGRES_PASSWORD: $TEST_POSTGRES_PASSWORD
-    NSFT_DB_NAME: $TEST_NSFT_DB_NAME
-    SECRET_KEY: $TEST_SECRET_KEY
-    ADMIN_USER_PASSWORD: $TEST_ADMIN_USER_PASSWORD
-  environment:
-    name: test
-    url: https://nsft.test.nath-server.home
+# ===========================================================================
+# integration — disposable integration instance, every branch push and merge request
+# build_docker -> allocate -> setup VM -> deploy -> pytest -> destroy VM
+# ===========================================================================
+
+allocate_integration_ip:
+  extends:
+    - .allocate_ip
+    - .rules_branch_and_mr
+  stage: integration
   needs:
     - build_docker
-  when: manual
-  tags:
-    - docker
+  variables:
+    ENV_NAME: integration
+    VM_FQDN: $INTEGRATION_VM_FQDN
+  environment:
+    name: integration
+    action: prepare
 
-pep8:
-  stage: test
-  image: $DEP_PROXY_PREFIX/python:3.11-slim
+setup_integration_vm:
+  extends:
+    - .setup_vm
+    - .rules_branch_and_mr
+  stage: integration
+  needs:
+    - job: allocate_integration_ip
+      artifacts: true
+  variables:
+    ENV_NAME: integration
+    VM_FQDN: $INTEGRATION_VM_FQDN
+    TF_VAR_vm_ip: ${INTEGRATION_VM_IP}
+    VM_GENERATION_SEED: ${INTEGRATION_VM_GENERATION_SEED}
+  environment:
+    name: integration
+    action: prepare
+  resource_group: integration-infra
+
+update_integration:
+  extends:
+    - .update_app
+    - .rules_branch_and_mr
+  stage: integration
+  needs:
+    - build_docker
+    - job: setup_integration_vm
+      artifacts: true
+  variables:
+    ENV_NAME: integration
+    SSH_HOST: nsft.integration.nath-server.home
+  environment:
+    name: integration
+    url: https://nsft.integration.nath-server.home
+
+# Run the Flask pytest suite inside the deployed app container.
+# Infra unit tests (deploy/infra/tests) are a dev concern and are not run here.
+test_integration:
+  extends:
+    - .ssh_setup
+    - .rules_branch_and_mr
+  stage: integration
+  needs:
+    - update_integration
+  variables:
+    ENV_NAME: integration
+    SSH_HOST: nsft.integration.nath-server.home
   script:
-    - pip install flake8
-    - flake8 nath_standalone_flask_template | tee pep8.out || true
-  allow_failure: true
-  artifacts:
-    paths:
-      - pep8.out
-    expire_in: 1 week
-  when: manual
-  tags:
-    - docker
-
-deploy_demo:
-  stage: demo
-  <<: *deploy_via_ansible
-  variables:
-    SSH_HOST: nsft.demo.nath-server.home
-    BUILD_DATE: $CI_PIPELINE_CREATED_AT
-    CONTEXT: demo
-    POSTGRES_PASSWORD: $DEMO_POSTGRES_PASSWORD
-    NSFT_DB_NAME: $DEMO_NSFT_DB_NAME
-    SECRET_KEY: $DEMO_SECRET_KEY
-    ADMIN_USER_PASSWORD: $DEMO_ADMIN_USER_PASSWORD
-  when: manual
+    - python3 deploy/ansible_deploy.py --action test --env "$ENV_NAME" --ansible-user Nath
   environment:
-    name: demo
-    url: https://nsft.demo.nath-server.home
+    name: integration
+    action: prepare
+
+# Automatic teardown once the tests ran (even when they failed). Set the CI
+# variable INTEGRATION_KEEP_VM=true to keep the VM for inspection and destroy
+# it by hand from the pipeline. If setup/deploy failed earlier this job is
+# skipped and the next pipeline converges the same VM again.
+destroy_integration_vm:
+  extends: .destroy_vm
+  stage: integration
+  needs:
+    - test_integration
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $INTEGRATION_KEEP_VM == "true"
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH && $INTEGRATION_KEEP_VM == "true"
+      when: manual
+      allow_failure: true
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_BRANCH
+      when: always
+  variables:
+    ENV_NAME: integration
+    VM_FQDN: $INTEGRATION_VM_FQDN
+  environment:
+    name: integration
+    action: stop
+  resource_group: integration-infra
+
+# ===========================================================================
+# validation — pre-production, every branch push and merge request, after integration passed
+# ===========================================================================
+
+allocate_validation_ip:
+  extends:
+    - .allocate_ip
+    - .rules_branch_and_mr
+  stage: validation
+  needs:
+    - test_integration
+  variables:
+    ENV_NAME: validation
+    VM_FQDN: $VALIDATION_VM_FQDN
+  environment:
+    name: validation
+    action: prepare
+
+setup_validation_vm:
+  extends:
+    - .setup_vm
+    - .rules_branch_and_mr
+  stage: validation
+  needs:
+    - job: allocate_validation_ip
+      artifacts: true
+  variables:
+    ENV_NAME: validation
+    VM_FQDN: $VALIDATION_VM_FQDN
+    TF_VAR_vm_ip: ${VALIDATION_VM_IP}
+    VM_GENERATION_SEED: ${VALIDATION_VM_GENERATION_SEED}
+  environment:
+    name: validation
+    action: prepare
+  resource_group: validation-infra
+
+update_validation:
+  extends:
+    - .update_app
+    - .rules_branch_and_mr
+  stage: validation
   needs:
     - build_docker
-  tags:
-    - docker
-
-deploy_prod:
-  stage: prod
-  <<: *deploy_via_ansible
-  # admin_user variables do have default values in case they are not set (except for the password)
+    - job: setup_validation_vm
+      artifacts: true
   variables:
+    ENV_NAME: validation
+    SSH_HOST: nsft.validation.nath-server.home
+  environment:
+    name: validation
+    url: https://nsft.validation.nath-server.home
+
+destroy_validation_vm:
+  extends:
+    - .destroy_vm
+    - .rules_branch_and_mr_manual
+  stage: validation
+  needs: []
+  variables:
+    ENV_NAME: validation
+    VM_FQDN: $VALIDATION_VM_FQDN
+  environment:
+    name: validation
+    action: stop
+  resource_group: validation-infra
+
+# ===========================================================================
+# prod — master only, after validation is deployed; deploy is manual
+# ===========================================================================
+
+allocate_prod_ip:
+  extends:
+    - .allocate_ip
+    - .rules_master
+  stage: prod
+  needs:
+    - update_validation
+  variables:
+    ENV_NAME: prod
+    VM_FQDN: $PROD_VM_FQDN
+  environment:
+    name: prod
+    action: prepare
+
+setup_prod_vm:
+  extends:
+    - .setup_vm
+    - .rules_master
+  stage: prod
+  needs:
+    - job: allocate_prod_ip
+      artifacts: true
+  variables:
+    ENV_NAME: prod
+    VM_FQDN: $PROD_VM_FQDN
+    TF_VAR_vm_ip: ${PROD_VM_IP}
+    VM_GENERATION_SEED: ${PROD_VM_GENERATION_SEED}
+  environment:
+    name: prod
+    action: prepare
+  resource_group: prod-infra
+
+# Manual gate: validation is the pre-production; promote to prod by hand.
+update_prod:
+  extends: .update_app
+  stage: prod
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: false
+  needs:
+    - build_docker
+    - job: setup_prod_vm
+      artifacts: true
+  variables:
+    ENV_NAME: prod
     SSH_HOST: nsft.nath-server.home
-    BUILD_DATE: $CI_PIPELINE_CREATED_AT
-    CONTEXT: prod
-    POSTGRES_PASSWORD: $PROD_POSTGRES_PASSWORD
-    NSFT_DB_NAME: $PROD_NSFT_DB_NAME
-    SECRET_KEY: $PROD_SECRET_KEY
-    ADMIN_USER_PASSWORD: $PROD_ADMIN_USER_PASSWORD
-    ADMIN_USER_USERNAME: $PROD_ADMIN_USER_USERNAME
-    ADMIN_USER_FIRST_NAME: $PROD_ADMIN_USER_FIRST_NAME
-    ADMIN_USER_LAST_NAME: $PROD_ADMIN_USER_LAST_NAME
-    ADMIN_USER_EMAIL: $PROD_ADMIN_USER_EMAIL
   environment:
     name: prod
     url: https://nsft.nath-server.home
-  needs:
-    - build_docker
-  tags:
-    - docker
+
+# Manual, explicit destruction. Back up /var/backups on the VM first.
+destroy_prod_vm:
+  extends:
+    - .destroy_vm
+    - .rules_master_manual
+  stage: prod
+  needs: []
+  variables:
+    ENV_NAME: prod
+    VM_FQDN: $PROD_VM_FQDN
+  environment:
+    name: prod
+    action: stop
+  resource_group: prod-infra

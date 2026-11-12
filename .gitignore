@@ -20,3 +20,16 @@ docs/_build/doctrees/**
 docs/_build/html/.buildinfo
 logs/**
 backups/**
+
+# Terraform (state lives in GitLab; never commit local runs)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+tfplan.json
+state.json
+.terraform.lock.hcl
+*.auto.tfvars
+infra.env
+vm.env

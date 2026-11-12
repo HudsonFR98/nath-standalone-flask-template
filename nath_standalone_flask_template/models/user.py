@@ -67,7 +67,7 @@ class User(Base, UserMixin):
     
     id = Column(Integer, primary_key=True)
     ide = Column(String(50), unique=True, nullable=False)  # Username
-    pwd = Column(String(128), nullable=False)  # Hashed password
+    pwd = Column(String(255), nullable=False)  # Werkzeug hash (scrypt or pbkdf2)
     first_name = Column(String(50))
     last_name = Column(String(50))
     email = Column(String(100))
@@ -87,7 +87,7 @@ class User(Base, UserMixin):
     @validates('pwd')
     def _hash_password(self, key, password):
         """Hash the password using Werkzeug's secure password hashing"""
-        if password and not password.startswith('pbkdf2:') and not password.startswith('sha256$'):
+        if password and not password.startswith(('pbkdf2:', 'scrypt:', 'sha256$')):
             return generate_password_hash(password)
         return password
     

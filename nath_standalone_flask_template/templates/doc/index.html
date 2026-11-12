@@ -2,7 +2,6 @@
 
 {% block js %}
 <script>
-    // Simple search functionality
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('doc-search-input');
         const contentSections = document.querySelectorAll('.doc-content-section');
@@ -11,7 +10,6 @@
             const searchTerm = searchInput.value.toLowerCase();
 
             if (searchTerm.length < 2) {
-                // Show all sections if search term is too short
                 contentSections.forEach(section => {
                     section.style.display = 'block';
                 });
@@ -20,40 +18,24 @@
 
             contentSections.forEach(section => {
                 const text = section.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
+                section.style.display = text.includes(searchTerm) ? 'block' : 'none';
             });
         });
 
-        // Handle sidebar navigation
         const sidebarLinks = document.querySelectorAll('.doc-sidebar-nav a');
         sidebarLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
-
-                // Remove active class from all links
                 sidebarLinks.forEach(l => l.classList.remove('active'));
-
-                // Add active class to clicked link
                 this.classList.add('active');
-
-                // Get the target section id
                 const targetId = this.getAttribute('href').substring(1);
-
-                // Hide all sections
                 contentSections.forEach(section => {
                     section.style.display = 'none';
                 });
-
-                // Show the target section
                 document.getElementById(targetId).style.display = 'block';
             });
         });
 
-        // Activate the first link by default
         if (sidebarLinks.length > 0) {
             sidebarLinks[0].click();
         }
@@ -65,13 +47,11 @@
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
-            <h1 class="h3 mb-4">Documentation</h1>
+            <h1 class="h3 mb-4">{{ _('Documentation') }}</h1>
         </div>
-    </div>
     </div>
 
     <div class="row">
-        <!-- Left Sidebar -->
         <div class="col-md-3">
             <div class="card doc-sidebar">
                 <div class="card-header">
@@ -96,6 +76,9 @@
                                 <a class="nav-link" href="#configuration"><i class="fas fa-cogs"></i> {{ _('Configuration') }}</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="#async-tasks"><i class="fas fa-clock"></i> {{ _('Async Tasks') }}</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="#deployment"><i class="fab fa-docker"></i> {{ _('Deployment') }}</a>
                             </li>
                         </ul>
@@ -104,66 +87,88 @@
             </div>
         </div>
 
-        <!-- Main Content Area -->
         <div class="col-md-9">
             <div class="card">
                 <div class="card-body">
-                    <!-- Overview Section -->
+
                     <div id="overview" class="doc-content-section">
-                        <h2>{{ _('Welcome to the Nath Standalone Flask Template Documentation') }}</h2>
+                        <h2>{{ _('Overview') }}</h2>
                         <p class="lead">
-                            {{ _('This documentation provides information about the Nath Standalone Flask Template application, its features, and how to use it.') }}
+                            {{ _('Standalone Flask template with authentication, admin tools, PostgreSQL, Redis, scheduled background work, and a GitLab-driven VM pipeline.') }}
                         </p>
-                        <div class="doc-note mt-4">
-                            <h4><i class="fas fa-info-circle"></i> {{ _('Note') }}</h4>
-                            <p>{{ _('This documentation is customizable and can be edited to include specific information about your implementation.') }}</p>
-                        </div>
+                        <p>{{ _('Use the admin menu for users, logs, and async tasks. This page summarizes how the stack fits together.') }}</p>
                     </div>
 
-                    <!-- User Management Section -->
                     <div id="user-management" class="doc-content-section">
                         <h2><i class="fas fa-users"></i> {{ _('User Management') }}</h2>
-                        <p>{{ _('The application includes a comprehensive user management system with role-based permissions:') }}</p>
                         <ul>
-                            <li>{{ _('User authentication and authorization') }}</li>
-                            <li>{{ _('Role-based access control') }}</li>
-                            <li>{{ _('Permission management') }}</li>
+                            <li>{{ _('Flask-Login sessions; passwords stored as Werkzeug hashes (scrypt or pbkdf2).') }}</li>
+                            <li>{{ _('Roles and permissions on the User model; admin UI under /admin.') }}</li>
+                            <li>{{ _('The default admin account is created at startup from environment variables (ADMIN_USER_*).') }}</li>
                         </ul>
                     </div>
 
-                    <!-- Database Section -->
                     <div id="database" class="doc-content-section">
                         <h2><i class="fas fa-database"></i> {{ _('Database') }}</h2>
-                        <p>{{ _('The application uses PostgreSQL as its database with Alembic for migrations:') }}</p>
                         <ul>
-                            <li>{{ _('Automatic database migrations') }}</li>
-                            <li>{{ _('SQLAlchemy ORM for database access') }}</li>
-                            <li>{{ _('Efficient data management') }}</li>
+                            <li>{{ _('PostgreSQL with SQLAlchemy; schema changes via Alembic (see MIGRATIONS.md in the repo).') }}</li>
+                            <li>{{ _('Application DB name is NSFT_DB_NAME; Postgres superuser DB is POSTGRES_DB.') }}</li>
+                            <li>{{ _('VM deployments keep data on a host volume; CI integration VMs are destroyed after tests.') }}</li>
                         </ul>
                     </div>
 
-                    <!-- Configuration Section -->
                     <div id="configuration" class="doc-content-section">
                         <h2><i class="fas fa-cogs"></i> {{ _('Configuration') }}</h2>
-                        <p>{{ _('The application supports multiple environments:') }}</p>
-                        <ul>
-                            <li>{{ _('Development') }}</li>
-                            <li>{{ _('Testing') }}</li>
-                            <li>{{ _('Demo') }}</li>
-                            <li>{{ _('Production') }}</li>
-                        </ul>
+                        <p>{{ _('NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT selects the config class in lib/_config.py:') }}</p>
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Context') }}</th>
+                                    <th>{{ _('Use') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>dev</code></td><td>{{ _('Local Docker Compose') }}</td></tr>
+                                <tr><td><code>integration</code></td><td>{{ _('CI disposable VM; TESTING enabled') }}</td></tr>
+                                <tr><td><code>validation</code></td><td>{{ _('CI pre-production VM') }}</td></tr>
+                                <tr><td><code>prod</code></td><td>{{ _('Production VM') }}</td></tr>
+                            </tbody>
+                        </table>
+                        <p>{{ _('Set DB_IP to the Postgres host (Compose service name or container name on a VM). All deployed contexts use HTTP on port 80 on the VM.') }}</p>
                     </div>
 
-                    <!-- Deployment Section -->
+                    <div id="async-tasks" class="doc-content-section">
+                        <h2><i class="fas fa-clock"></i> {{ _('Async Tasks') }}</h2>
+                        <p>{{ _('Background work runs inside the app process with APScheduler (lib/task_scheduler.py), not a separate worker container.') }}</p>
+                        <ul>
+                            <li>{{ _('The scheduler starts when the Flask app loads; jobs are registered with register_task or the @scheduled_task decorator.') }}</li>
+                            <li>{{ _('Cron schedules and metadata live in the scheduled_tasks table; each run is logged in task_executions (status, duration, errors).') }}</li>
+                            <li>{{ _('Built-in job: database_backup runs daily at 04:00 (cron 0 4 * * *), creates a SQL backup and prunes backups older than seven days.') }}</li>
+                            <li>{{ _('Failed runs can trigger a Telegram alert when TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set.') }}</li>
+                            <li>{{ _('Admins can inspect schedules and history under Admin → Async Tasks.') }}</li>
+                        </ul>
+                        <p>{{ _('Add a new recurring task: define a function, decorate it with @scheduled_task with a cron expression, and restart the app so registration runs. Use the same pattern as database_backup in task_scheduler.py.') }}</p>
+                    </div>
+
                     <div id="deployment" class="doc-content-section">
                         <h2><i class="fab fa-docker"></i> {{ _('Deployment') }}</h2>
-                        <p>{{ _('The application can be deployed using Docker:') }}</p>
+                        <p>{{ _('GitLab CI stages: docker → integration → validation → prod. Each deployed environment gets its own VM (Terraform + Pi-hole DNS + Ansible).') }}</p>
                         <ul>
-                            <li>{{ _('Docker Compose for local development') }}</li>
-                            <li>{{ _('Ansible for production deployment') }}</li>
-                            <li>{{ _('CI/CD pipeline integration') }}</li>
+                            <li>{{ _('integration: create VM, deploy, run pytest in the container, destroy VM (unless INTEGRATION_KEEP_VM=true).') }}</li>
+                            <li>{{ _('validation: same flow after integration tests; no automated test job; destroy is manual.') }}</li>
+                            <li>{{ _('prod: master branch only; deploy and destroy are manual.') }}</li>
+                            <li>{{ _('Ansible connects as user Nath; nginx listens on port 80 on every VM.') }}</li>
                         </ul>
+                        <h3 class="h5 mt-3">{{ _('CI/CD variables (project)') }}</h3>
+                        <p>{{ _('Set variables in GitLab → Settings → CI/CD. Shared infra vars use scope *; per-env secrets use scope integration, validation, or prod.') }}</p>
+                        <ul>
+                            <li>{{ _('PROXMOX_*, PIHOLE_*, GITLAB_CA_FILE (file), TELEGRAM_*, IP_POOL_*: not protected (needed on feature branches).') }}</li>
+                            <li>{{ _('INTEGRATION_* and VALIDATION_*: not protected (pipelines run on merge requests and feature branches).') }}</li>
+                            <li>{{ _('PROD_*: protected; available on the default branch only.') }}</li>
+                        </ul>
+                        <p>{{ _('Details and job graph: docs/infra_automation/ in the repository and the header of .gitlab-ci.yml.') }}</p>
                     </div>
+
                 </div>
             </div>
         </div>

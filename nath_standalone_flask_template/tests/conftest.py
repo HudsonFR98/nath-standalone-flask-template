@@ -7,36 +7,14 @@ from nath_standalone_flask_template.lib import config
 
 
 @pytest.fixture(scope="module", autouse=True)
-def connect_db():
+def connect_db(request):
+    """Open the application database for modules that need it.
+
+    Modules that only check context names set ``NO_DB = True`` and skip this.
     """
-    Automatically connect to the test database for all tests in the module.
-    
-    This fixture runs automatically for all tests in the module (autouse=True)
-    and has module scope, meaning it runs once per test module rather than
-    once per test function. This provides efficient database connection
-    management for the entire test suite.
-    
-    The fixture:
-    1. Sets up logging with the configured log level
-    2. Opens a database connection using the test configuration
-    3. Yields control to the tests
-    4. Cleans up the database connection after all tests complete
-    
-    This fixture is essential because most tests require database access,
-    and it ensures consistent database connectivity throughout the test suite.
-    
-    Scope:
-        module - Runs once per test module for efficiency
-    
-    Autouse:
-        True - Automatically used by all tests without explicit declaration
-    
-    Yields:
-        None - This fixture doesn't provide data, just manages the connection
-    
-    Raises:
-        Exception: If database connection fails, the error is logged and re-raised
-    """
+    if getattr(request.module, "NO_DB", False):
+        yield
+        return
     try:
         # Set up logging with the configured log level
         logging.basicConfig(level=config.LOG_LEVEL)
