@@ -108,6 +108,11 @@ def main():
     parser.add_argument("--admin-user-first-name", help="Initial admin first name")
     parser.add_argument("--admin-user-last-name", help="Initial admin last name")
     parser.add_argument("--admin-user-email", help="Initial admin email")
+    parser.add_argument("--reviewer-user-username", help="Initial reviewer username")
+    parser.add_argument("--reviewer-user-password", help="Initial reviewer password")
+    parser.add_argument("--reviewer-user-first-name", help="Initial reviewer first name")
+    parser.add_argument("--reviewer-user-last-name", help="Initial reviewer last name")
+    parser.add_argument("--reviewer-user-email", help="Initial reviewer email")
 
     args = parser.parse_args()
 
@@ -194,6 +199,16 @@ def main():
         cmd.extend(["-e", "admin_user_last_name=%s" % args.admin_user_last_name])
     if args.admin_user_email:
         cmd.extend(["-e", "admin_user_email=%s" % args.admin_user_email])
+    if args.reviewer_user_username:
+        cmd.extend(["-e", "reviewer_user_username=%s" % args.reviewer_user_username])
+    if args.reviewer_user_password:
+        cmd.extend(["-e", f"{context}_reviewer_user_password={args.reviewer_user_password}"])
+    if args.reviewer_user_first_name:
+        cmd.extend(["-e", "reviewer_user_first_name=%s" % args.reviewer_user_first_name])
+    if args.reviewer_user_last_name:
+        cmd.extend(["-e", "reviewer_user_last_name=%s" % args.reviewer_user_last_name])
+    if args.reviewer_user_email:
+        cmd.extend(["-e", "reviewer_user_email=%s" % args.reviewer_user_email])
 
     try:
         subprocess.check_call(["ansible-galaxy", "collection", "install", "-r", "ansible/requirements.yml"])

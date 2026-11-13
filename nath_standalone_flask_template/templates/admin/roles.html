@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Roles') }} - {{ _('Admin') }}{% endblock %}
+
+{% block body %}
+<br>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">{{ _('Roles') }}</h1>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn btn-primary" {% if current_user.has_permission('admin') %}data-bs-toggle="modal"
+                data-bs-target="#createRoleModal"{% else %}disabled{% endif %}>
+                <i class="fas fa-plus"></i> {{ _('Create Role') }}
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ _('Roles List') }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Name') }}</th>
+                                    <th>{{ _('Description') }}</th>
+                                    <th>{{ _('Users') }}</th>
+                                    <th>{{ _('Permissions') }}</th>
+                                    <th>{{ _('Actions') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td>{{ role.name }}</td>
+                                    <td>{{ role.description or '-' }}</td>
+                                    <td>{{ role.users|length }}</td>
+                                    <td>
+                                        {% for permission in role.granted_permissions %}
+                                        <span class="badge bg-secondary me-1">{{ permission.name }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-info edit-role-btn"
+                                                data-role-id="{{ role.id }}"
+                                                {% if not current_user.has_permission('admin') %}disabled{% endif %}>
+                                                <i class="fas fa-edit"></i> {{ _('Edit') }}
+                                            </button>
+                                            {% if not role.is_admin_role() %}
+                                            <form method="POST" action="{{ url_for('admin.delete_role') }}"
+                                                class="d-inline"
+                                                onsubmit="return confirm('{{ _('Are you sure you want to delete this role?') }}');">
+                                                <input type="hidden" name="role_id" value="{{ role.id }}">
+                                                <button class="btn btn-sm btn-danger" type="submit"
+                                                    {% if not current_user.has_permission('admin') %}disabled{% endif %}>
+                                                    <i class="fas fa-trash"></i> {{ _('Delete') }}
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.create_role') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createRoleModalLabel">{{ _('Create Role') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">{{ _('Name') }} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required maxlength="50">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">{{ _('Description') }}</label>
+                        <input type="text" class="form-control" id="description" name="description" maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Permissions') }}</label>
+                        {% for permission in available_permissions %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="permissions"
+                                value="{{ permission.id }}" id="create_perm_{{ permission.id }}">
+                            <label class="form-check-label" for="create_perm_{{ permission.id }}">
+                                <code>{{ permission.name }}</code>
+                                {% if permission.description %} — {{ permission.description }}{% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ _('Create Role') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editRoleForm" method="POST" action="{{ url_for('admin.edit_role') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRoleModalLabel">{{ _('Edit Role') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_role_id" name="role_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">{{ _('Name') }} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required maxlength="50">
+                        <div class="form-text" id="edit_name_help" hidden>
+                            {{ _('The admin role name cannot be changed.') }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">{{ _('Description') }}</label>
+                        <input type="text" class="form-control" id="edit_description" name="description" maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Permissions') }}</label>
+                        {% for permission in available_permissions %}
+                        <div class="form-check">
+                            <input class="form-check-input edit-permission-checkbox" type="checkbox" name="permissions"
+                                value="{{ permission.id }}" id="edit_perm_{{ permission.id }}">
+                            <label class="form-check-label" for="edit_perm_{{ permission.id }}">
+                                <code>{{ permission.name }}</code>
+                                {% if permission.description %} — {{ permission.description }}{% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ _('Update Role') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.edit-role-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var roleId = this.getAttribute('data-role-id');
+                var modal = document.getElementById('editRoleModal');
+                fetch('{{ url_for("admin.get_role", role_id=0) }}'.replace('/0', '/' + roleId))
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        document.getElementById('edit_role_id').value = data.id;
+                        var nameInput = document.getElementById('edit_name');
+                        nameInput.value = data.name;
+                        nameInput.readOnly = data.is_admin;
+                        document.getElementById('edit_name_help').hidden = !data.is_admin;
+                        document.getElementById('edit_description').value = data.description || '';
+                        document.querySelectorAll('.edit-permission-checkbox').forEach(function (checkbox) {
+                            checkbox.checked = data.permissions.indexOf(parseInt(checkbox.value, 10)) !== -1;
+                        });
+                        new bootstrap.Modal(modal).show();
+                    })
+                    .catch(function (error) {
+                        console.error('Error loading role data:', error);
+                        alert('{{ _("Failed to load role data") }}');
+                    });
+            });
+        });
+    });
+</script>
+{% endblock %}

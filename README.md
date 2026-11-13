@@ -39,7 +39,8 @@ The script automatically handles all name variations:
    ```bash
    ./setup_dev.sh
    ```
-3. Start by building the development environment:
+3. Create you .env file using .env.exemple template
+4. Start by building the development environment:
    ```bash
    docker compose up --build
    ```
@@ -47,7 +48,7 @@ The script automatically handles all name variations:
    ```bash
       docker compose up
    ```
-4. Access the application at http://localhost:8080
+5. Access the application at http://localhost:8080
 
 
 ### Development Environment Details
@@ -60,8 +61,8 @@ The script automatically handles all name variations:
 
 
 **Environment variables**:
-   - Set in docker-compose.yml for local development
-   - Can be overridden with a .env file
+   - Copy `.env.example` to `.env` for local development (docker-compose loads it)
+   - No in-code defaults: missing variables fail at startup
 
 **Compatibility Notes**:
    - The docker-compose.yml file uses version 3.8 for compatibility with Docker Compose 2.35.1 and Docker 28.1.1
@@ -145,25 +146,46 @@ If you need to restore your development database from a backup file in the `back
 
 Pytest lives in `nath_standalone_flask_template/tests/`. The suite talks to Postgres, so a full run needs a database (local Compose with `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev`, or the integration VM).
 
-Context-only checks do not open the database (`NO_DB` in `test_context.py`):
+Dependencies (including pytest) are installed in the app image venv (`/opt/env3/nath_standalone_flask_template`). If `PATH` does not start with that venv’s `bin/`, `python` is `/usr/local/bin/python` and pytest is missing. Compose sets `PATH` for the `app` service; the Dockerfile sets it in the image. Recreate the app container after changing compose: `docker compose up -d app`.
+
+### Dev Compose (recommended)
+
+From the host, with the stack up and `.env` loaded by Compose:
 
 ```bash
-NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=integration \
-DB_IP=127.0.0.1 \
-POSTGRES_USER=web POSTGRES_PASSWORD=web POSTGRES_DB=postgres NSFT_DB_NAME=nsft \
-SECRET_KEY=dev TELEGRAM_BOT_TOKEN=t TELEGRAM_CHAT_ID=1 \
-ADMIN_USER_USERNAME=admin ADMIN_USER_PASSWORD=admin \
-ADMIN_USER_FIRST_NAME=A ADMIN_USER_LAST_NAME=B ADMIN_USER_EMAIL=a@b.c \
-python3 -m pytest nath_standalone_flask_template/tests/test_context.py -q
+# No database (NO_DB in test_context.py); uses container env (context=dev, DB_IP=nsft_db_dev)
+docker compose exec app python -m pytest nath_standalone_flask_template/tests/test_context.py -q
+
+# Full suite (same entry point as CI integration)
+docker compose exec app python nath_standalone_flask_template/tests/run_tests.py
 ```
 
-Infra helpers (Pi-hole, IP pool, Terraform plan guard) are stdlib unit tests:
+Inside an interactive shell (`docker compose exec app bash`), use `python`, not bare `python3` from before the image was rebuilt:
+
+```bash
+python -m pytest nath_standalone_flask_template/tests/test_context.py -q
+python nath_standalone_flask_template/tests/run_tests.py
+```
+
+Or call the venv explicitly (works on any image revision):
+
+```bash
+/opt/env3/nath_standalone_flask_template/bin/python nath_standalone_flask_template/tests/run_tests.py
+```
+
+### Host (no Docker)
+
+Install deps into a local venv from `deploy/requirements.txt`, export the same variables as `.env` (see `.env.example`), set `DB_IP=127.0.0.1` and port `5433` if Postgres is published from Compose, then run pytest or `run_tests.py`.
+
+### Infra helpers
+
+Pi-hole, IP pool, and Terraform plan guard tests are stdlib only (host Python, not the app container):
 
 ```bash
 cd deploy && python3 -m unittest discover -s infra/tests -t .
 ```
 
-On a deployed integration VM, CI runs the same app suite inside the container via `deploy/ansible/run_tests.yml`.
+On a deployed integration VM, CI runs the app suite with `deploy/ansible/run_tests.yml` (`docker exec` + venv `python` + `run_tests.py`).
 
 ## GitLab CI/CD
 

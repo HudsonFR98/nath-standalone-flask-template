@@ -70,6 +70,9 @@
                                 <a class="nav-link" href="#user-management"><i class="fas fa-users"></i> {{ _('User Management') }}</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="#rest-api"><i class="fas fa-plug"></i> {{ _('REST API') }}</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="#database"><i class="fas fa-database"></i> {{ _('Database') }}</a>
                             </li>
                             <li class="nav-item">
@@ -96,15 +99,28 @@
                         <p class="lead">
                             {{ _('Standalone Flask template with authentication, admin tools, PostgreSQL, Redis, scheduled background work, and a GitLab-driven VM pipeline.') }}
                         </p>
-                        <p>{{ _('Use the admin menu for users, logs, and async tasks. This page summarizes how the stack fits together.') }}</p>
+                        <p>{{ _('Use Admin for users, roles, permissions, logs, and async tasks. This page summarizes how the stack fits together.') }}</p>
                     </div>
 
                     <div id="user-management" class="doc-content-section">
                         <h2><i class="fas fa-users"></i> {{ _('User Management') }}</h2>
                         <ul>
                             <li>{{ _('Flask-Login sessions; passwords stored as Werkzeug hashes (scrypt or pbkdf2).') }}</li>
-                            <li>{{ _('Roles and permissions on the User model; admin UI under /admin.') }}</li>
-                            <li>{{ _('The default admin account is created at startup from environment variables (ADMIN_USER_*).') }}</li>
+                            <li>{{ _('Assign roles to users under Admin → Users. Effective rights are the union of those roles.') }}</li>
+                            <li>{{ _('The reviewer role (read/write/delete, no admin permission) can view Users, Roles, Permissions, and Async Tasks. Create/edit and API tokens require has_permission(admin). Logs require has_role(admin).') }}</li>
+                            <li>{{ _('Admin → Roles: create roles and tick permissions. The admin role cannot be renamed or deleted.') }}</li>
+                            <li>{{ _('Admin → Permissions: default slugs are admin, read, write, delete. Names cannot be changed after creation.') }}</li>
+                            <li>{{ _('The admin account is created at startup from ADMIN_USER_*. The reviewer account is created only when REVIEWER_USER_USERNAME and REVIEWER_USER_PASSWORD are set (.env or GitLab CI <ENV>_REVIEWER_USER_*).') }}</li>
+                            <li>{{ _('On validation only: admins can enable passwordless reviewer login under Admin → Users. Visitors are signed in as reviewer until they log out; the login page also offers Connect as reviewer.') }}</li>
+                        </ul>
+                    </div>
+
+                    <div id="rest-api" class="doc-content-section">
+                        <h2><i class="fas fa-plug"></i> {{ _('REST API') }}</h2>
+                        <ul>
+                            <li>{{ _('Issue one API token per user from Admin → Users (key button). The secret is shown once; only a hash is stored.') }}</li>
+                            <li>{{ _('All /rest routes require the token: Authorization: Bearer <token> or X-API-Token.') }}</li>
+                            <li>{{ _('Probe: GET /rest/test returns the username bound to the token. Inactive users are rejected.') }}</li>
                         </ul>
                     </div>
 
@@ -112,6 +128,7 @@
                         <h2><i class="fas fa-database"></i> {{ _('Database') }}</h2>
                         <ul>
                             <li>{{ _('PostgreSQL with SQLAlchemy; schema changes via Alembic (see MIGRATIONS.md in the repo).') }}</li>
+                            <li>{{ _('Permissions live in permissions and role_permissions. API tokens are stored hashed on users.') }}</li>
                             <li>{{ _('Application DB name is NSFT_DB_NAME; Postgres superuser DB is POSTGRES_DB.') }}</li>
                             <li>{{ _('VM deployments keep data on a host volume; CI integration VMs are destroyed after tests.') }}</li>
                         </ul>

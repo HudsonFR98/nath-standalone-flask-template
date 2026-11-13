@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-12 16:21+0000\n"
-"PO-Revision-Date: 2025-07-07 15:40+0200\n"
+"POT-Creation-Date: 2026-11-13 12:04+0000\n"
+"PO-Revision-Date: 2026-11-13 09:35+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
@@ -18,7 +18,226 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+#: nath_standalone_flask_template/blueprints/admin.py:54
+msgid "Error loading tasks data. Please check database connection."
+msgstr ""
+"Erreur de chargement des données des tâches. Vérifiez la connexion à la "
+"base de données."
+
+#: nath_standalone_flask_template/blueprints/admin.py:230
+msgid "Error loading logs"
+msgstr "Erreur de chargement des journaux"
+
+#: nath_standalone_flask_template/blueprints/admin.py:255
+msgid "Error loading users data. Please check database connection."
+msgstr ""
+"Erreur de chargement des données utilisateurs. Vérifiez la connexion à la"
+" base de données."
+
+#: nath_standalone_flask_template/blueprints/admin.py:270
+msgid "This setting only applies in the validation context."
+msgstr "Ce réglage s'applique uniquement au contexte validation."
+
+#: nath_standalone_flask_template/blueprints/admin.py:275
+msgid "Validation reviewer guest login enabled."
+msgstr "Connexion reviewer invité activée (validation)."
+
+#: nath_standalone_flask_template/blueprints/admin.py:277
+msgid "Validation reviewer guest login disabled."
+msgstr "Connexion reviewer invité désactivée (validation)."
+
+#: nath_standalone_flask_template/blueprints/admin.py:298
+msgid "Username and password are required."
+msgstr "Le nom d'utilisateur et le mot de passe sont obligatoires."
+
+#: nath_standalone_flask_template/blueprints/admin.py:303
+#: nath_standalone_flask_template/blueprints/admin.py:371
+msgid "Username already exists."
+msgstr "Ce nom d'utilisateur existe déjà."
+
+#: nath_standalone_flask_template/blueprints/admin.py:328
+msgid "User created successfully."
+msgstr "Utilisateur créé avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:333
+msgid "Error creating user. Please try again."
+msgstr "Erreur lors de la création de l'utilisateur. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:354
+msgid "User ID is required."
+msgstr "L'identifiant utilisateur est obligatoire."
+
+#: nath_standalone_flask_template/blueprints/admin.py:360
+#: nath_standalone_flask_template/dao/user.py:33
+#: nath_standalone_flask_template/dao/user.py:50
+msgid "User not found."
+msgstr "Utilisateur introuvable."
+
+#: nath_standalone_flask_template/blueprints/admin.py:365
+msgid "Username is required."
+msgstr "Le nom d'utilisateur est obligatoire."
+
+#: nath_standalone_flask_template/blueprints/admin.py:394
+msgid "User updated successfully."
+msgstr "Utilisateur mis à jour avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:399
+msgid "Error updating user. Please try again."
+msgstr "Erreur lors de la mise à jour de l'utilisateur. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:534
+msgid "Error loading roles data. Please check database connection."
+msgstr ""
+"Erreur de chargement des données des rôles. Vérifiez la connexion à la "
+"base de données."
+
+#: nath_standalone_flask_template/blueprints/admin.py:548
+msgid "Role created successfully."
+msgstr "Rôle créé avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:554
+msgid "Error creating role. Please try again."
+msgstr "Erreur lors de la création du rôle. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:570
+msgid "Role updated successfully."
+msgstr "Rôle mis à jour avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:573
+#: nath_standalone_flask_template/blueprints/admin.py:592
+msgid "Role ID is required."
+msgstr "L'identifiant du rôle est obligatoire."
+
+#: nath_standalone_flask_template/blueprints/admin.py:578
+msgid "Error updating role. Please try again."
+msgstr "Erreur lors de la mise à jour du rôle. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:589
+msgid "Role deleted successfully."
+msgstr "Rôle supprimé avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:597
+msgid "Error deleting role. Please try again."
+msgstr "Erreur lors de la suppression du rôle. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:634
+msgid "Error loading permissions data. Please check database connection."
+msgstr ""
+"Erreur de chargement des données des permissions. Vérifiez la connexion à"
+" la base de données."
+
+#: nath_standalone_flask_template/blueprints/admin.py:647
+msgid "Permission created successfully."
+msgstr "Permission créée avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:653
+msgid "Error creating permission. Please try again."
+msgstr "Erreur lors de la création de la permission. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:667
+msgid "Permission updated successfully."
+msgstr "Permission mise à jour avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:670
+#: nath_standalone_flask_template/blueprints/admin.py:689
+msgid "Permission ID is required."
+msgstr "L'identifiant de la permission est obligatoire."
+
+#: nath_standalone_flask_template/blueprints/admin.py:675
+msgid "Error updating permission. Please try again."
+msgstr "Erreur lors de la mise à jour de la permission. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/admin.py:686
+msgid "Permission deleted successfully."
+msgstr "Permission supprimée avec succès."
+
+#: nath_standalone_flask_template/blueprints/admin.py:694
+msgid "Error deleting permission. Please try again."
+msgstr "Erreur lors de la suppression de la permission. Veuillez réessayer."
+
+#: nath_standalone_flask_template/blueprints/auth.py:36
+msgid "User account is inactive"
+msgstr "Ce compte utilisateur est inactif."
+
+#: nath_standalone_flask_template/blueprints/auth.py:42
+msgid "Invalid username or password"
+msgstr "Nom d'utilisateur ou mot de passe invalide."
+
+#: nath_standalone_flask_template/blueprints/auth.py:57
+msgid "Reviewer account is not available."
+msgstr "Le compte reviewer n'est pas disponible."
+
+#: nath_standalone_flask_template/blueprints/auth.py:71
+msgid "Please sign in again"
+msgstr "Veuillez vous reconnecter."
+
+#: nath_standalone_flask_template/dao/permission.py:28
+msgid ""
+"Permission name must start with a letter and contain only lowercase "
+"letters, digits, or underscores."
+msgstr ""
+"Le nom de la permission doit commencer par une lettre et ne contenir que "
+"des lettres minuscules, des chiffres ou des tirets bas."
+
+#: nath_standalone_flask_template/dao/permission.py:32
+msgid "A permission with this name already exists."
+msgstr "Une permission portant ce nom existe déjà."
+
+#: nath_standalone_flask_template/dao/permission.py:46
+#: nath_standalone_flask_template/dao/permission.py:55
+msgid "Permission not found."
+msgstr "Permission introuvable."
+
+#: nath_standalone_flask_template/dao/permission.py:57
+msgid "System permissions cannot be deleted."
+msgstr "Les permissions système ne peuvent pas être supprimées."
+
+#: nath_standalone_flask_template/dao/permission.py:59
+msgid "This permission is still assigned to one or more roles."
+msgstr "Cette permission est encore attribuée à un ou plusieurs rôles."
+
+#: nath_standalone_flask_template/dao/role.py:32
+msgid "One of the selected permissions does not exist."
+msgstr "L'une des permissions sélectionnées n'existe pas."
+
+#: nath_standalone_flask_template/dao/role.py:46
+#: nath_standalone_flask_template/dao/role.py:75
+#: nath_standalone_flask_template/dao/role.py:95
+msgid "Role not found."
+msgstr "Rôle introuvable."
+
+#: nath_standalone_flask_template/dao/role.py:55
+#: nath_standalone_flask_template/dao/role.py:78
+msgid "Role name is required."
+msgstr "Le nom du rôle est obligatoire."
+
+#: nath_standalone_flask_template/dao/role.py:57
+#: nath_standalone_flask_template/dao/role.py:83
+msgid "A role with this name already exists."
+msgstr "Un rôle portant ce nom existe déjà."
+
+#: nath_standalone_flask_template/dao/role.py:80
+msgid "The admin role cannot be renamed."
+msgstr "Le rôle admin ne peut pas être renommé."
+
+#: nath_standalone_flask_template/dao/role.py:97
+msgid "The admin role cannot be deleted."
+msgstr "Le rôle admin ne peut pas être supprimé."
+
+#: nath_standalone_flask_template/dao/role.py:99
+msgid "This role is still assigned to one or more users."
+msgstr "Ce rôle est encore attribué à un ou plusieurs utilisateurs."
+
+#: nath_standalone_flask_template/dao/user.py:52
+msgid "This user has no API token."
+msgstr "Cet utilisateur n'a pas de jeton API."
+
+#: nath_standalone_flask_template/lib/api_auth.py:30
+msgid "Invalid or missing API token"
+msgstr "Jeton API manquant ou invalide"
+
 #: nath_standalone_flask_template/templates/base.html:16
+#: nath_standalone_flask_template/templates/dashboard/home.html:7
 msgid "Nath Standalone Flask Template"
 msgstr "Modèle Flask autonome de Nath"
 
@@ -35,7 +254,7 @@ msgid "Example"
 msgstr "Exemple"
 
 #: nath_standalone_flask_template/templates/base.html:46
-#: nath_standalone_flask_template/templates/login.html:14
+#: nath_standalone_flask_template/templates/login.html:13
 msgid "Login"
 msgstr "Connexion"
 
@@ -55,53 +274,77 @@ msgstr "Sortie des Tests"
 msgid "Administration"
 msgstr "Administration"
 
+#: nath_standalone_flask_template/templates/admin/roles.html:36
 #: nath_standalone_flask_template/templates/base.html:68
 msgid "Users"
 msgstr "Utilisateurs"
 
-#: nath_standalone_flask_template/templates/admin/tasks.html:3
+#: nath_standalone_flask_template/templates/admin/permissions.html:41
+#: nath_standalone_flask_template/templates/admin/roles.html:3
+#: nath_standalone_flask_template/templates/admin/roles.html:10
+#: nath_standalone_flask_template/templates/admin/users.html:69
+#: nath_standalone_flask_template/templates/admin/users.html:175
+#: nath_standalone_flask_template/templates/admin/users.html:227
 #: nath_standalone_flask_template/templates/base.html:69
-#: nath_standalone_flask_template/templates/doc/index.html:79
-#: nath_standalone_flask_template/templates/doc/index.html:141
+msgid "Roles"
+msgstr "Rôles"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:3
+#: nath_standalone_flask_template/templates/admin/permissions.html:10
+#: nath_standalone_flask_template/templates/admin/roles.html:37
+#: nath_standalone_flask_template/templates/admin/roles.html:103
+#: nath_standalone_flask_template/templates/admin/roles.html:147
+#: nath_standalone_flask_template/templates/base.html:70
+msgid "Permissions"
+msgstr "Permissions"
+
+#: nath_standalone_flask_template/templates/admin/tasks.html:3
+#: nath_standalone_flask_template/templates/base.html:71
+#: nath_standalone_flask_template/templates/doc/index.html:82
+#: nath_standalone_flask_template/templates/doc/index.html:158
 msgid "Async Tasks"
 msgstr "Tâches Asynchrones"
 
-#: nath_standalone_flask_template/templates/base.html:70
+#: nath_standalone_flask_template/templates/base.html:74
 msgid "Logs"
 msgstr "Journaux"
 
-#: nath_standalone_flask_template/templates/base.html:77
+#: nath_standalone_flask_template/templates/base.html:82
 msgid "Logout"
 msgstr "Déconnexion"
 
-#: nath_standalone_flask_template/templates/base.html:82
+#: nath_standalone_flask_template/templates/base.html:87
 msgid "Help"
 msgstr "Aide"
 
-#: nath_standalone_flask_template/templates/base.html:86
+#: nath_standalone_flask_template/templates/base.html:91
 msgid "Toggle theme"
 msgstr "Basculer le thème"
 
-#: nath_standalone_flask_template/templates/base.html:95
+#: nath_standalone_flask_template/templates/base.html:100
 msgid "Language"
 msgstr "Langue"
 
-#: nath_standalone_flask_template/templates/base.html:182
+#: nath_standalone_flask_template/templates/base.html:187
 msgid "Switch to light mode"
 msgstr "Passer en mode clair"
 
-#: nath_standalone_flask_template/templates/base.html:185
+#: nath_standalone_flask_template/templates/base.html:190
 msgid "Switch to dark mode"
 msgstr "Passer en mode sombre"
 
-#: nath_standalone_flask_template/templates/login.html:9
+#: nath_standalone_flask_template/templates/login.html:8
 msgid "User ID"
 msgstr "Identifiant"
 
-#: nath_standalone_flask_template/templates/admin/users.html:110
-#: nath_standalone_flask_template/templates/login.html:13
+#: nath_standalone_flask_template/templates/admin/users.html:158
+#: nath_standalone_flask_template/templates/login.html:12
 msgid "Password"
 msgstr "Mot de passe"
+
+#: nath_standalone_flask_template/templates/login.html:18
+msgid "Connect as reviewer"
+msgstr "Se connecter en tant que reviewer"
 
 #: nath_standalone_flask_template/templates/admin/logs.html:3
 #: nath_standalone_flask_template/templates/admin/logs.html:10
@@ -110,6 +353,8 @@ msgid "Application Logs"
 msgstr "Journaux d'Application"
 
 #: nath_standalone_flask_template/templates/admin/logs.html:3
+#: nath_standalone_flask_template/templates/admin/permissions.html:3
+#: nath_standalone_flask_template/templates/admin/roles.html:3
 #: nath_standalone_flask_template/templates/admin/tasks.html:3
 #: nath_standalone_flask_template/templates/admin/users.html:3
 msgid "Admin"
@@ -127,6 +372,129 @@ msgstr "Effacer l'Affichage"
 #: nath_standalone_flask_template/templates/admin/logs.html:29
 msgid "No logs available"
 msgstr "Aucun journal disponible"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:18
+#: nath_standalone_flask_template/templates/admin/permissions.html:96
+#: nath_standalone_flask_template/templates/admin/permissions.html:114
+msgid "Create Permission"
+msgstr "Créer une permission"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:24
+msgid ""
+"Permission names cannot be renamed after creation; they are used in "
+"application code."
+msgstr ""
+"Les noms de permission ne peuvent pas être renommés après création ; ils "
+"sont utilisés dans le code de l'application."
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:31
+msgid "Permissions List"
+msgstr "Liste des permissions"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:38
+#: nath_standalone_flask_template/templates/admin/permissions.html:101
+#: nath_standalone_flask_template/templates/admin/permissions.html:132
+#: nath_standalone_flask_template/templates/admin/roles.html:34
+#: nath_standalone_flask_template/templates/admin/roles.html:95
+#: nath_standalone_flask_template/templates/admin/roles.html:136
+msgid "Name"
+msgstr "Nom"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:39
+#: nath_standalone_flask_template/templates/admin/permissions.html:108
+#: nath_standalone_flask_template/templates/admin/permissions.html:136
+#: nath_standalone_flask_template/templates/admin/roles.html:35
+#: nath_standalone_flask_template/templates/admin/roles.html:99
+#: nath_standalone_flask_template/templates/admin/roles.html:143
+#: nath_standalone_flask_template/templates/admin/tasks.html:99
+msgid "Description"
+msgstr "Description"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:40
+msgid "Type"
+msgstr "Type"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:42
+#: nath_standalone_flask_template/templates/admin/roles.html:38
+#: nath_standalone_flask_template/templates/admin/tasks.html:104
+#: nath_standalone_flask_template/templates/admin/users.html:72
+msgid "Actions"
+msgstr "Actions"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:52
+msgid "System"
+msgstr "Système"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:54
+msgid "Custom"
+msgstr "Personnalisée"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:65
+#: nath_standalone_flask_template/templates/admin/roles.html:59
+#: nath_standalone_flask_template/templates/admin/users.html:108
+msgid "Edit"
+msgstr "Modifier"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:70
+msgid "Are you sure you want to delete this permission?"
+msgstr "Êtes-vous sûr de vouloir supprimer cette permission ?"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:74
+#: nath_standalone_flask_template/templates/admin/roles.html:68
+msgid "Delete"
+msgstr "Supprimer"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:104
+#: nath_standalone_flask_template/templates/admin/permissions.html:105
+msgid "Lowercase letter, then letters, digits or underscores"
+msgstr "Une lettre minuscule, puis des lettres, chiffres ou tirets bas"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:113
+#: nath_standalone_flask_template/templates/admin/permissions.html:141
+#: nath_standalone_flask_template/templates/admin/roles.html:117
+#: nath_standalone_flask_template/templates/admin/roles.html:161
+#: nath_standalone_flask_template/templates/admin/users.html:185
+#: nath_standalone_flask_template/templates/admin/users.html:237
+msgid "Cancel"
+msgstr "Annuler"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:126
+msgid "Edit Permission"
+msgstr "Modifier la permission"
+
+#: nath_standalone_flask_template/templates/admin/permissions.html:142
+msgid "Update Permission"
+msgstr "Mettre à jour la permission"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:18
+#: nath_standalone_flask_template/templates/admin/roles.html:90
+#: nath_standalone_flask_template/templates/admin/roles.html:118
+msgid "Create Role"
+msgstr "Créer un rôle"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:27
+msgid "Roles List"
+msgstr "Liste des rôles"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:64
+msgid "Are you sure you want to delete this role?"
+msgstr "Êtes-vous sûr de vouloir supprimer ce rôle ?"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:130
+msgid "Edit Role"
+msgstr "Modifier le rôle"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:139
+msgid "The admin role name cannot be changed."
+msgstr "Le nom du rôle admin ne peut pas être modifié."
+
+#: nath_standalone_flask_template/templates/admin/roles.html:162
+msgid "Update Role"
+msgstr "Mettre à jour le rôle"
+
+#: nath_standalone_flask_template/templates/admin/roles.html:196
+msgid "Failed to load role data"
+msgstr "Échec du chargement des données du rôle"
 
 #: nath_standalone_flask_template/templates/admin/tasks.html:10
 msgid "Async Tasks Management"
@@ -159,10 +527,6 @@ msgstr "Tâches Planifiées Actives"
 msgid "Task Name"
 msgstr "Nom de la Tâche"
 
-#: nath_standalone_flask_template/templates/admin/tasks.html:99
-msgid "Description"
-msgstr "Description"
-
 #: nath_standalone_flask_template/templates/admin/tasks.html:100
 msgid "Schedule"
 msgstr "Planification"
@@ -170,7 +534,7 @@ msgstr "Planification"
 #: nath_standalone_flask_template/templates/admin/tasks.html:101
 #: nath_standalone_flask_template/templates/admin/tasks.html:133
 #: nath_standalone_flask_template/templates/admin/tasks.html:183
-#: nath_standalone_flask_template/templates/admin/users.html:40
+#: nath_standalone_flask_template/templates/admin/users.html:71
 msgid "Status"
 msgstr "Statut"
 
@@ -182,13 +546,8 @@ msgstr "Dernière Exécution"
 msgid "Next Run"
 msgstr "Prochaine Exécution"
 
-#: nath_standalone_flask_template/templates/admin/tasks.html:104
-#: nath_standalone_flask_template/templates/admin/users.html:41
-msgid "Actions"
-msgstr "Actions"
-
 #: nath_standalone_flask_template/templates/admin/tasks.html:114
-#: nath_standalone_flask_template/templates/admin/users.html:58
+#: nath_standalone_flask_template/templates/admin/users.html:96
 msgid "Active"
 msgstr "Actif"
 
@@ -248,6 +607,7 @@ msgid "Loading..."
 msgstr "Chargement..."
 
 #: nath_standalone_flask_template/templates/admin/tasks.html:217
+#: nath_standalone_flask_template/templates/admin/users.html:267
 msgid "Close"
 msgstr "Fermer"
 
@@ -264,115 +624,194 @@ msgstr "Succès"
 msgid "Users Management"
 msgstr "Gestion des Utilisateurs"
 
-#: nath_standalone_flask_template/templates/admin/users.html:18
-#: nath_standalone_flask_template/templates/admin/users.html:100
+#: nath_standalone_flask_template/templates/admin/users.html:19
+msgid "Validation access"
+msgstr "Accès validation"
+
+#: nath_standalone_flask_template/templates/admin/users.html:21
+msgid ""
+"When enabled, visitors on this validation instance sign in as the "
+"reviewer without a password until they log out. They can also use Connect"
+" as reviewer on the login page."
+msgstr ""
+"Lorsque l'option est active, les visiteurs de cette instance validation "
+"sont connectés en reviewer sans mot de passe jusqu'à déconnexion. Ils "
+"peuvent aussi utiliser « Se connecter en tant que reviewer » sur la page "
+"de connexion."
+
+#: nath_standalone_flask_template/templates/admin/users.html:31
+msgid "Allow passwordless reviewer login"
+msgstr "Autoriser la connexion reviewer sans mot de passe"
+
+#: nath_standalone_flask_template/templates/admin/users.html:35
+msgid "Save"
+msgstr "Enregistrer"
+
+#: nath_standalone_flask_template/templates/admin/users.html:48
+#: nath_standalone_flask_template/templates/admin/users.html:148
 msgid "Create New User"
 msgstr "Créer un Nouvel Utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:28
+#: nath_standalone_flask_template/templates/admin/users.html:58
 msgid "Users List"
 msgstr "Liste des Utilisateurs"
 
-#: nath_standalone_flask_template/templates/admin/users.html:35
-#: nath_standalone_flask_template/templates/admin/users.html:105
-#: nath_standalone_flask_template/templates/admin/users.html:157
+#: nath_standalone_flask_template/templates/admin/users.html:65
+#: nath_standalone_flask_template/templates/admin/users.html:153
+#: nath_standalone_flask_template/templates/admin/users.html:205
+#: nath_standalone_flask_template/templates/admin/users.html:253
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:36
-#: nath_standalone_flask_template/templates/admin/users.html:115
-#: nath_standalone_flask_template/templates/admin/users.html:167
+#: nath_standalone_flask_template/templates/admin/users.html:66
+#: nath_standalone_flask_template/templates/admin/users.html:163
+#: nath_standalone_flask_template/templates/admin/users.html:215
 msgid "First Name"
 msgstr "Prénom"
 
-#: nath_standalone_flask_template/templates/admin/users.html:37
-#: nath_standalone_flask_template/templates/admin/users.html:119
-#: nath_standalone_flask_template/templates/admin/users.html:171
+#: nath_standalone_flask_template/templates/admin/users.html:67
+#: nath_standalone_flask_template/templates/admin/users.html:167
+#: nath_standalone_flask_template/templates/admin/users.html:219
 msgid "Last Name"
 msgstr "Nom de famille"
 
-#: nath_standalone_flask_template/templates/admin/users.html:38
-#: nath_standalone_flask_template/templates/admin/users.html:123
-#: nath_standalone_flask_template/templates/admin/users.html:175
+#: nath_standalone_flask_template/templates/admin/users.html:68
+#: nath_standalone_flask_template/templates/admin/users.html:171
+#: nath_standalone_flask_template/templates/admin/users.html:223
 msgid "Email"
-msgstr "Email"
+msgstr "Adresse e-mail"
 
-#: nath_standalone_flask_template/templates/admin/users.html:39
-#: nath_standalone_flask_template/templates/admin/users.html:127
-#: nath_standalone_flask_template/templates/admin/users.html:179
-msgid "Roles"
-msgstr "Rôles"
+#: nath_standalone_flask_template/templates/admin/users.html:70
+#: nath_standalone_flask_template/templates/admin/users.html:116
+#: nath_standalone_flask_template/templates/admin/users.html:249
+msgid "API Token"
+msgstr "Jeton API"
 
-#: nath_standalone_flask_template/templates/admin/users.html:60
+#: nath_standalone_flask_template/templates/admin/users.html:91
+#: nath_standalone_flask_template/templates/admin/users.html:322
+msgid "No token"
+msgstr "Aucun jeton"
+
+#: nath_standalone_flask_template/templates/admin/users.html:98
 msgid "Left"
 msgstr "Parti"
 
-#: nath_standalone_flask_template/templates/admin/users.html:62
+#: nath_standalone_flask_template/templates/admin/users.html:100
 msgid "Inactive"
 msgstr "Inactif"
 
-#: nath_standalone_flask_template/templates/admin/users.html:69
-msgid "Edit"
-msgstr "Modifier"
-
-#: nath_standalone_flask_template/templates/admin/users.html:75
+#: nath_standalone_flask_template/templates/admin/users.html:123
 msgid "Deactivate"
 msgstr "Désactiver"
 
-#: nath_standalone_flask_template/templates/admin/users.html:77
+#: nath_standalone_flask_template/templates/admin/users.html:125
 msgid "Activate"
 msgstr "Activer"
 
-#: nath_standalone_flask_template/templates/admin/users.html:133
-#: nath_standalone_flask_template/templates/admin/users.html:185
+#: nath_standalone_flask_template/templates/admin/users.html:181
+#: nath_standalone_flask_template/templates/admin/users.html:233
 msgid "Hold Ctrl/Cmd to select multiple roles"
 msgstr "Maintenez Ctrl/Cmd pour sélectionner plusieurs rôles"
 
-#: nath_standalone_flask_template/templates/admin/users.html:137
-#: nath_standalone_flask_template/templates/admin/users.html:189
-msgid "Cancel"
-msgstr "Annuler"
-
-#: nath_standalone_flask_template/templates/admin/users.html:138
+#: nath_standalone_flask_template/templates/admin/users.html:186
 msgid "Create User"
 msgstr "Créer l'Utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:151
+#: nath_standalone_flask_template/templates/admin/users.html:199
 msgid "Edit User"
 msgstr "Modifier l'Utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:162
+#: nath_standalone_flask_template/templates/admin/users.html:210
 msgid "New Password"
 msgstr "Nouveau Mot de Passe"
 
-#: nath_standalone_flask_template/templates/admin/users.html:164
+#: nath_standalone_flask_template/templates/admin/users.html:212
 msgid "Leave blank to keep current password"
 msgstr "Laisser vide pour conserver le mot de passe actuel"
 
-#: nath_standalone_flask_template/templates/admin/users.html:190
+#: nath_standalone_flask_template/templates/admin/users.html:238
 msgid "Update User"
 msgstr "Mettre à Jour l'Utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:235
+#: nath_standalone_flask_template/templates/admin/users.html:256
+msgid "Copy this token now. It will not be shown again."
+msgstr "Copiez ce jeton maintenant. Il ne sera plus affiché."
+
+#: nath_standalone_flask_template/templates/admin/users.html:260
+#: nath_standalone_flask_template/templates/admin/users.html:329
+msgid "Copy"
+msgstr "Copier"
+
+#: nath_standalone_flask_template/templates/admin/users.html:266
+msgid "Revoke"
+msgstr "Révoquer"
+
+#: nath_standalone_flask_template/templates/admin/users.html:268
+msgid "Generate Token"
+msgstr "Générer un jeton"
+
+#: nath_standalone_flask_template/templates/admin/users.html:312
 msgid "Failed to load user data"
 msgstr "Échec du chargement des données utilisateur"
 
-#: nath_standalone_flask_template/templates/admin/users.html:246
+#: nath_standalone_flask_template/templates/admin/users.html:323
+msgid "Current token prefix:"
+msgstr "Préfixe du jeton actuel :"
+
+#: nath_standalone_flask_template/templates/admin/users.html:324
+msgid "Generating a new token will replace the existing one. Continue?"
+msgstr "Générer un nouveau jeton remplacera l'existant. Continuer ?"
+
+#: nath_standalone_flask_template/templates/admin/users.html:325
+msgid "Revoke this API token? The user will no longer be able to call the API."
+msgstr "Révoquer ce jeton API ? L'utilisateur ne pourra plus appeler l'API."
+
+#: nath_standalone_flask_template/templates/admin/users.html:326
+msgid "Failed to generate API token"
+msgstr "Échec de la génération du jeton API"
+
+#: nath_standalone_flask_template/templates/admin/users.html:327
+msgid "Failed to revoke API token"
+msgstr "Échec de la révocation du jeton API"
+
+#: nath_standalone_flask_template/templates/admin/users.html:328
+msgid "Copied"
+msgstr "Copié"
+
+#: nath_standalone_flask_template/templates/admin/users.html:430
 msgid "Are you sure you want to deactivate this user?"
 msgstr "Êtes-vous sûr de vouloir désactiver cet utilisateur ?"
 
-#: nath_standalone_flask_template/templates/admin/users.html:246
+#: nath_standalone_flask_template/templates/admin/users.html:430
 msgid "Are you sure you want to activate this user?"
 msgstr "Êtes-vous sûr de vouloir activer cet utilisateur ?"
 
-#: nath_standalone_flask_template/templates/admin/users.html:265
-#: nath_standalone_flask_template/templates/admin/users.html:270
+#: nath_standalone_flask_template/templates/admin/users.html:449
+#: nath_standalone_flask_template/templates/admin/users.html:454
 msgid "Failed to update user status"
 msgstr "Échec de la mise à jour du statut utilisateur"
 
 #: nath_standalone_flask_template/templates/dashboard/home.html:5
-msgid "Welcome to the Dashboard"
-msgstr "Bienvenue sur le Tableau de Bord"
+msgid "Welcome"
+msgstr "Bienvenue"
+
+#: nath_standalone_flask_template/templates/dashboard/home.html:11
+msgid ""
+"Authentication and roles, admin UI, REST API tokens, PostgreSQL and "
+"Alembic, Redis-backed tasks, translations, and Docker / GitLab "
+"deployment—ready for your own features."
+msgstr ""
+"Authentification et rôles, interface d’administration, jetons API REST, "
+"PostgreSQL et Alembic, tâches Redis, traductions, et déploiement Docker /"
+" GitLab — prêt pour vos propres fonctionnalités."
+
+#: nath_standalone_flask_template/templates/dashboard/home.html:15
+msgid "Developed by"
+msgstr "Développé par"
+
+#: nath_standalone_flask_template/templates/dashboard/home.html:20
+msgid "Open documentation"
+msgstr "Ouvrir la documentation"
 
 #: nath_standalone_flask_template/templates/doc/index.html:50
 msgid "Documentation"
@@ -383,31 +822,36 @@ msgid "Search documentation..."
 msgstr "Rechercher dans la documentation..."
 
 #: nath_standalone_flask_template/templates/doc/index.html:67
-#: nath_standalone_flask_template/templates/doc/index.html:95
+#: nath_standalone_flask_template/templates/doc/index.html:98
 msgid "Overview"
 msgstr "Vue d'ensemble"
 
 #: nath_standalone_flask_template/templates/doc/index.html:70
-#: nath_standalone_flask_template/templates/doc/index.html:103
+#: nath_standalone_flask_template/templates/doc/index.html:106
 msgid "User Management"
 msgstr "Gestion des Utilisateurs"
 
 #: nath_standalone_flask_template/templates/doc/index.html:73
-#: nath_standalone_flask_template/templates/doc/index.html:112
+#: nath_standalone_flask_template/templates/doc/index.html:119
+msgid "REST API"
+msgstr "API REST"
+
+#: nath_standalone_flask_template/templates/doc/index.html:76
+#: nath_standalone_flask_template/templates/doc/index.html:128
 msgid "Database"
 msgstr "Base de données"
 
-#: nath_standalone_flask_template/templates/doc/index.html:76
-#: nath_standalone_flask_template/templates/doc/index.html:121
+#: nath_standalone_flask_template/templates/doc/index.html:79
+#: nath_standalone_flask_template/templates/doc/index.html:138
 msgid "Configuration"
 msgstr "Configuration"
 
-#: nath_standalone_flask_template/templates/doc/index.html:82
-#: nath_standalone_flask_template/templates/doc/index.html:154
+#: nath_standalone_flask_template/templates/doc/index.html:85
+#: nath_standalone_flask_template/templates/doc/index.html:171
 msgid "Deployment"
 msgstr "Déploiement"
 
-#: nath_standalone_flask_template/templates/doc/index.html:97
+#: nath_standalone_flask_template/templates/doc/index.html:100
 msgid ""
 "Standalone Flask template with authentication, admin tools, PostgreSQL, "
 "Redis, scheduled background work, and a GitLab-driven VM pipeline."
@@ -416,15 +860,15 @@ msgstr ""
 "PostgreSQL, Redis, tâches planifiées en arrière-plan et pipeline de VM "
 "piloté par GitLab."
 
-#: nath_standalone_flask_template/templates/doc/index.html:99
+#: nath_standalone_flask_template/templates/doc/index.html:102
 msgid ""
-"Use the admin menu for users, logs, and async tasks. This page summarizes"
-" how the stack fits together."
+"Use Admin for users, roles, permissions, logs, and async tasks. This page"
+" summarizes how the stack fits together."
 msgstr ""
-"Utilisez le menu Admin pour les utilisateurs, les journaux et les tâches "
-"asynchrones. Cette page résume l'architecture."
+"Utilisez Admin pour les utilisateurs, rôles, permissions, journaux et "
+"tâches asynchrones. Cette page résume l'architecture."
 
-#: nath_standalone_flask_template/templates/doc/index.html:105
+#: nath_standalone_flask_template/templates/doc/index.html:108
 msgid ""
 "Flask-Login sessions; passwords stored as Werkzeug hashes (scrypt or "
 "pbkdf2)."
@@ -432,21 +876,84 @@ msgstr ""
 "Sessions Flask-Login ; mots de passe stockés sous forme de hachages "
 "Werkzeug (scrypt ou pbkdf2)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:106
-msgid "Roles and permissions on the User model; admin UI under /admin."
-msgstr ""
-"Rôles et permissions sur le modèle User ; interface d'administration sous "
-"/admin."
-
-#: nath_standalone_flask_template/templates/doc/index.html:107
+#: nath_standalone_flask_template/templates/doc/index.html:109
 msgid ""
-"The default admin account is created at startup from environment "
-"variables (ADMIN_USER_*)."
+"Assign roles to users under Admin → Users. Effective rights are the union"
+" of those roles."
 msgstr ""
-"Le compte administrateur par défaut est créé au démarrage à partir des "
-"variables d'environnement (ADMIN_USER_*)."
+"Attribuez des rôles aux utilisateurs sous Admin → Utilisateurs. Les "
+"droits effectifs sont l'union de ces rôles."
+
+#: nath_standalone_flask_template/templates/doc/index.html:110
+msgid ""
+"The reviewer role (read/write/delete, no admin permission) can view "
+"Users, Roles, Permissions, and Async Tasks. Create/edit and API tokens "
+"require has_permission(admin). Logs require has_role(admin)."
+msgstr ""
+"Le rôle reviewer (read/write/delete, sans permission admin) peut "
+"consulter Utilisateurs, Rôles, Permissions et Tâches asynchrones. "
+"Création/édition et jetons API exigent has_permission(admin). Les "
+"journaux exigent has_role(admin)."
+
+#: nath_standalone_flask_template/templates/doc/index.html:111
+msgid ""
+"Admin → Roles: create roles and tick permissions. The admin role cannot "
+"be renamed or deleted."
+msgstr ""
+"Admin → Rôles : créer des rôles et cocher des permissions. Le rôle admin "
+"ne peut pas être renommé ni supprimé."
+
+#: nath_standalone_flask_template/templates/doc/index.html:112
+msgid ""
+"Admin → Permissions: default slugs are admin, read, write, delete. Names "
+"cannot be changed after creation."
+msgstr ""
+"Admin → Permissions : slugs par défaut admin, read, write, delete. Les "
+"noms ne peuvent pas être changés après création."
+
+#: nath_standalone_flask_template/templates/doc/index.html:113
+msgid ""
+"The admin account is created at startup from ADMIN_USER_*. The reviewer "
+"account is created only when REVIEWER_USER_USERNAME and "
+"REVIEWER_USER_PASSWORD are set (.env or GitLab CI <ENV>_REVIEWER_USER_*)."
+msgstr ""
 
 #: nath_standalone_flask_template/templates/doc/index.html:114
+msgid ""
+"On validation only: admins can enable passwordless reviewer login under "
+"Admin → Users. Visitors are signed in as reviewer until they log out; the"
+" login page also offers Connect as reviewer."
+msgstr ""
+"Uniquement en validation : les admins activent la connexion reviewer sans"
+" mot de passe sous Admin → Utilisateurs. Les visiteurs sont connectés en "
+"reviewer jusqu'à déconnexion ; la page de connexion propose aussi « Se "
+"connecter en tant que reviewer »."
+
+#: nath_standalone_flask_template/templates/doc/index.html:121
+msgid ""
+"Issue one API token per user from Admin → Users (key button). The secret "
+"is shown once; only a hash is stored."
+msgstr ""
+"Émettez un jeton API par utilisateur depuis Admin → Utilisateurs (bouton "
+"clé). Le secret s'affiche une fois ; seul un hachage est stocké."
+
+#: nath_standalone_flask_template/templates/doc/index.html:122
+msgid ""
+"All /rest routes require the token: Authorization: Bearer <token> or X"
+"-API-Token."
+msgstr ""
+"Toutes les routes /rest exigent le jeton : Authorization: Bearer <token> "
+"ou X-API-Token."
+
+#: nath_standalone_flask_template/templates/doc/index.html:123
+msgid ""
+"Probe: GET /rest/test returns the username bound to the token. Inactive "
+"users are rejected."
+msgstr ""
+"Sonde : GET /rest/test renvoie le nom d'utilisateur lié au jeton. Les "
+"utilisateurs inactifs sont refusés."
+
+#: nath_standalone_flask_template/templates/doc/index.html:130
 msgid ""
 "PostgreSQL with SQLAlchemy; schema changes via Alembic (see MIGRATIONS.md"
 " in the repo)."
@@ -454,20 +961,27 @@ msgstr ""
 "PostgreSQL avec SQLAlchemy ; évolutions du schéma via Alembic (voir "
 "MIGRATIONS.md dans le dépôt)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:115
-msgid "Application DB name is NSFT_DB_NAME; Postgres superuser DB is POSTGRES_DB."
+#: nath_standalone_flask_template/templates/doc/index.html:131
+msgid ""
+"Permissions live in permissions and role_permissions. API tokens are "
+"stored hashed on users."
 msgstr ""
-"Base applicative : NSFT_DB_NAME ; base système Postgres : POSTGRES_DB."
+"Les permissions sont dans permissions et role_permissions. Les jetons API"
+" sont stockés hachés sur users."
 
-#: nath_standalone_flask_template/templates/doc/index.html:116
+#: nath_standalone_flask_template/templates/doc/index.html:132
+msgid "Application DB name is NSFT_DB_NAME; Postgres superuser DB is POSTGRES_DB."
+msgstr "Base applicative : NSFT_DB_NAME ; base système Postgres : POSTGRES_DB."
+
+#: nath_standalone_flask_template/templates/doc/index.html:133
 msgid ""
 "VM deployments keep data on a host volume; CI integration VMs are "
 "destroyed after tests."
 msgstr ""
-"Les déploiements sur VM conservent les données sur un volume hôte ; les VM "
-"d'intégration CI sont détruites après les tests."
+"Les déploiements sur VM conservent les données sur un volume hôte ; les "
+"VM d'intégration CI sont détruites après les tests."
 
-#: nath_standalone_flask_template/templates/doc/index.html:122
+#: nath_standalone_flask_template/templates/doc/index.html:139
 msgid ""
 "NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT selects the config class in "
 "lib/_config.py:"
@@ -475,48 +989,48 @@ msgstr ""
 "NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT sélectionne la classe de "
 "configuration dans lib/_config.py :"
 
-#: nath_standalone_flask_template/templates/doc/index.html:126
+#: nath_standalone_flask_template/templates/doc/index.html:143
 msgid "Context"
 msgstr "Contexte"
 
-#: nath_standalone_flask_template/templates/doc/index.html:127
+#: nath_standalone_flask_template/templates/doc/index.html:144
 msgid "Use"
 msgstr "Usage"
 
-#: nath_standalone_flask_template/templates/doc/index.html:131
+#: nath_standalone_flask_template/templates/doc/index.html:148
 msgid "Local Docker Compose"
 msgstr "Docker Compose local"
 
-#: nath_standalone_flask_template/templates/doc/index.html:132
+#: nath_standalone_flask_template/templates/doc/index.html:149
 msgid "CI disposable VM; TESTING enabled"
 msgstr "VM CI jetable ; mode TESTING activé"
 
-#: nath_standalone_flask_template/templates/doc/index.html:133
+#: nath_standalone_flask_template/templates/doc/index.html:150
 msgid "CI pre-production VM"
 msgstr "VM CI de pré-production"
 
-#: nath_standalone_flask_template/templates/doc/index.html:134
+#: nath_standalone_flask_template/templates/doc/index.html:151
 msgid "Production VM"
 msgstr "VM de production"
 
-#: nath_standalone_flask_template/templates/doc/index.html:137
+#: nath_standalone_flask_template/templates/doc/index.html:154
 msgid ""
-"Set DB_IP to the Postgres host (Compose service name or container name on "
-"a VM). All deployed contexts use HTTP on port 80 on the VM."
+"Set DB_IP to the Postgres host (Compose service name or container name on"
+" a VM). All deployed contexts use HTTP on port 80 on the VM."
 msgstr ""
 "Définissez DB_IP sur l'hôte Postgres (nom du service Compose ou du "
 "conteneur sur une VM). Tous les contextes déployés utilisent HTTP sur le "
 "port 80 sur la VM."
 
-#: nath_standalone_flask_template/templates/doc/index.html:142
+#: nath_standalone_flask_template/templates/doc/index.html:159
 msgid ""
 "Background work runs inside the app process with APScheduler "
 "(lib/task_scheduler.py), not a separate worker container."
 msgstr ""
-"Les tâches en arrière-plan s'exécutent dans le processus de l'application "
-"avec APScheduler (lib/task_scheduler.py), sans conteneur worker dédié."
+"Les tâches en arrière-plan s'exécutent dans le processus de l'application"
+" avec APScheduler (lib/task_scheduler.py), sans conteneur worker dédié."
 
-#: nath_standalone_flask_template/templates/doc/index.html:144
+#: nath_standalone_flask_template/templates/doc/index.html:161
 msgid ""
 "The scheduler starts when the Flask app loads; jobs are registered with "
 "register_task or the @scheduled_task decorator."
@@ -525,7 +1039,7 @@ msgstr ""
 "tâches sont enregistrées avec register_task ou le décorateur "
 "@scheduled_task."
 
-#: nath_standalone_flask_template/templates/doc/index.html:145
+#: nath_standalone_flask_template/templates/doc/index.html:162
 msgid ""
 "Cron schedules and metadata live in the scheduled_tasks table; each run "
 "is logged in task_executions (status, duration, errors)."
@@ -534,16 +1048,16 @@ msgstr ""
 "scheduled_tasks ; chaque exécution est journalisée dans task_executions "
 "(statut, durée, erreurs)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:146
+#: nath_standalone_flask_template/templates/doc/index.html:163
 msgid ""
 "Built-in job: database_backup runs daily at 04:00 (cron 0 4 * * *), "
 "creates a SQL backup and prunes backups older than seven days."
 msgstr ""
-"Tâche intégrée : database_backup s'exécute chaque jour à 04 h (cron "
-"0 4 * * *), crée une sauvegarde SQL et supprime les sauvegardes de plus "
-"de sept jours."
+"Tâche intégrée : database_backup s'exécute chaque jour à 04 h (cron 0 4 *"
+" * *), crée une sauvegarde SQL et supprime les sauvegardes de plus de "
+"sept jours."
 
-#: nath_standalone_flask_template/templates/doc/index.html:147
+#: nath_standalone_flask_template/templates/doc/index.html:164
 msgid ""
 "Failed runs can trigger a Telegram alert when TELEGRAM_BOT_TOKEN and "
 "TELEGRAM_CHAT_ID are set."
@@ -551,13 +1065,13 @@ msgstr ""
 "Les échecs peuvent déclencher une alerte Telegram si TELEGRAM_BOT_TOKEN "
 "et TELEGRAM_CHAT_ID sont définis."
 
-#: nath_standalone_flask_template/templates/doc/index.html:148
+#: nath_standalone_flask_template/templates/doc/index.html:165
 msgid "Admins can inspect schedules and history under Admin → Async Tasks."
 msgstr ""
 "Les administrateurs consultent les planifications et l'historique sous "
 "Admin → Tâches asynchrones."
 
-#: nath_standalone_flask_template/templates/doc/index.html:150
+#: nath_standalone_flask_template/templates/doc/index.html:167
 msgid ""
 "Add a new recurring task: define a function, decorate it with "
 "@scheduled_task with a cron expression, and restart the app so "
@@ -565,11 +1079,11 @@ msgid ""
 "task_scheduler.py."
 msgstr ""
 "Ajouter une tâche récurrente : définir une fonction, la décorer avec "
-"@scheduled_task et une expression cron, puis redémarrer l'application pour "
-"l'enregistrement. Suivre le même modèle que database_backup dans "
+"@scheduled_task et une expression cron, puis redémarrer l'application "
+"pour l'enregistrement. Suivre le même modèle que database_backup dans "
 "task_scheduler.py."
 
-#: nath_standalone_flask_template/templates/doc/index.html:155
+#: nath_standalone_flask_template/templates/doc/index.html:172
 msgid ""
 "GitLab CI stages: docker → integration → validation → prod. Each deployed"
 " environment gets its own VM (Terraform + Pi-hole DNS + Ansible)."
@@ -578,7 +1092,7 @@ msgstr ""
 "environnement déployé dispose de sa propre VM (Terraform + DNS Pi-hole + "
 "Ansible)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:157
+#: nath_standalone_flask_template/templates/doc/index.html:174
 msgid ""
 "integration: create VM, deploy, run pytest in the container, destroy VM "
 "(unless INTEGRATION_KEEP_VM=true)."
@@ -586,30 +1100,29 @@ msgstr ""
 "integration : création de la VM, déploiement, pytest dans le conteneur, "
 "destruction de la VM (sauf si INTEGRATION_KEEP_VM=true)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:158
+#: nath_standalone_flask_template/templates/doc/index.html:175
 msgid ""
 "validation: same flow after integration tests; no automated test job; "
 "destroy is manual."
 msgstr ""
-"validation : même enchaînement après les tests d'intégration ; pas de "
-"job de tests automatisé ; destruction manuelle."
+"validation : même enchaînement après les tests d'intégration ; pas de job"
+" de tests automatisé ; destruction manuelle."
 
-#: nath_standalone_flask_template/templates/doc/index.html:159
+#: nath_standalone_flask_template/templates/doc/index.html:176
 msgid "prod: master branch only; deploy and destroy are manual."
-msgstr ""
-"prod : branche master uniquement ; déploiement et destruction manuels."
+msgstr "prod : branche master uniquement ; déploiement et destruction manuels."
 
-#: nath_standalone_flask_template/templates/doc/index.html:160
+#: nath_standalone_flask_template/templates/doc/index.html:177
 msgid "Ansible connects as user Nath; nginx listens on port 80 on every VM."
 msgstr ""
-"Ansible se connecte avec l'utilisateur Nath ; nginx écoute sur le port 80 "
-"sur chaque VM."
+"Ansible se connecte avec l'utilisateur Nath ; nginx écoute sur le port 80"
+" sur chaque VM."
 
-#: nath_standalone_flask_template/templates/doc/index.html:162
+#: nath_standalone_flask_template/templates/doc/index.html:179
 msgid "CI/CD variables (project)"
 msgstr "Variables CI/CD (projet)"
 
-#: nath_standalone_flask_template/templates/doc/index.html:163
+#: nath_standalone_flask_template/templates/doc/index.html:180
 msgid ""
 "Set variables in GitLab → Settings → CI/CD. Shared infra vars use scope "
 "*; per-env secrets use scope integration, validation, or prod."
@@ -618,7 +1131,7 @@ msgstr ""
 "infra partagées ont la portée * ; les secrets par environnement ont la "
 "portée integration, validation ou prod."
 
-#: nath_standalone_flask_template/templates/doc/index.html:165
+#: nath_standalone_flask_template/templates/doc/index.html:182
 msgid ""
 "PROXMOX_*, PIHOLE_*, GITLAB_CA_FILE (file), TELEGRAM_*, IP_POOL_*: not "
 "protected (needed on feature branches)."
@@ -626,7 +1139,7 @@ msgstr ""
 "PROXMOX_*, PIHOLE_*, GITLAB_CA_FILE (fichier), TELEGRAM_*, IP_POOL_* : "
 "non protégées (nécessaires sur les branches de fonctionnalité)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:166
+#: nath_standalone_flask_template/templates/doc/index.html:183
 msgid ""
 "INTEGRATION_* and VALIDATION_*: not protected (pipelines run on merge "
 "requests and feature branches)."
@@ -634,171 +1147,30 @@ msgstr ""
 "INTEGRATION_* et VALIDATION_* : non protégées (pipelines sur les merge "
 "requests et branches de fonctionnalité)."
 
-#: nath_standalone_flask_template/templates/doc/index.html:167
+#: nath_standalone_flask_template/templates/doc/index.html:184
 msgid "PROD_*: protected; available on the default branch only."
-msgstr ""
-"PROD_* : protégées ; disponibles uniquement sur la branche par défaut."
+msgstr "PROD_* : protégées ; disponibles uniquement sur la branche par défaut."
 
-#: nath_standalone_flask_template/templates/doc/index.html:169
+#: nath_standalone_flask_template/templates/doc/index.html:186
 msgid ""
 "Details and job graph: docs/infra_automation/ in the repository and the "
 "header of .gitlab-ci.yml."
 msgstr ""
-"Détails et graphe des jobs : docs/infra_automation/ dans le dépôt et "
-"l'en-tête de .gitlab-ci.yml."
-
-#~ msgid "Total Users"
-#~ msgstr ""
-
-#~ msgid "Active Users"
-#~ msgstr ""
-
-#~ msgid "Admin Users"
-#~ msgstr ""
-
-#~ msgid "Available Roles"
-#~ msgstr ""
-
-#~ msgid "Name"
-#~ msgstr ""
-
-#~ msgid "No roles"
-#~ msgstr ""
-
-#~ msgid "Leave empty to keep current password"
-#~ msgstr ""
-
-#~ msgid "Has Left"
-#~ msgstr ""
-
-#~ msgid "Manage User Roles"
-#~ msgstr ""
-
-#~ msgid "User"
-#~ msgstr ""
-
-#~ msgid "Update Roles"
-#~ msgstr ""
-
-#~ msgid "Username and password are required."
-#~ msgstr "Le nom d'utilisateur et le mot de passe sont requis."
-
-#~ msgid "Username already exists."
-#~ msgstr "Le nom d'utilisateur existe déjà."
-
-#~ msgid "User created successfully."
-#~ msgstr "Utilisateur créé avec succès."
-
-#~ msgid "Error creating user. Please try again."
-#~ msgstr "Erreur lors de la création de l'utilisateur. Veuillez réessayer."
-
-#~ msgid "User ID is required."
-#~ msgstr "L'ID utilisateur est requis."
-
-#~ msgid "User not found."
-#~ msgstr "Utilisateur non trouvé."
-
-#~ msgid "Username is required."
-#~ msgstr "Le nom d'utilisateur est requis."
-
-#~ msgid "User updated successfully."
-#~ msgstr "Utilisateur mis à jour avec succès."
-
-#~ msgid "Error updating user. Please try again."
-#~ msgstr "Erreur lors de la mise à jour de l'utilisateur. Veuillez réessayer."
-
-#~ msgid "Error loading users data. Please check database connection."
-#~ msgstr ""
-#~ "Erreur lors du chargement des données"
-#~ " utilisateur. Veuillez vérifier la "
-#~ "connexion à la base de données."
-
-#~ msgid "Password hashing uses secure PBKDF2 with SHA256"
-#~ msgstr "Le hachage des mots de passe utilise PBKDF2 sécurisé avec SHA256"
-
-#~ msgid "Welcome to the Nath Standalone Flask Template Documentation"
-#~ msgstr "Bienvenue dans la documentation de Nath Standalone Flask Template"
+"Détails et graphe des jobs : docs/infra_automation/ dans le dépôt et l"
+"'en-tête de .gitlab-ci.yml."
 
 #~ msgid ""
-#~ "This documentation provides information about"
-#~ " the Nath Standalone Flask Template "
-#~ "application, its features, and how to"
-#~ " use it."
+#~ "The default admin and reviewer accounts"
+#~ " are created at startup from "
+#~ "ADMIN_USER_* and REVIEWER_USER_* (copy "
+#~ ".env.example to .env in dev; GitLab "
+#~ "CI variables INTEGRATION_/VALIDATION_/PROD_ on "
+#~ "VMs)."
 #~ msgstr ""
-#~ "Cette documentation fournit des informations"
-#~ " sur l'application Nath Standalone Flask"
-#~ " Template, ses fonctionnalités et son "
-#~ "utilisation."
-
-#~ msgid "Note"
-#~ msgstr "Remarque"
-
-#~ msgid ""
-#~ "This documentation is customizable and "
-#~ "can be edited to include specific "
-#~ "information about your implementation."
-#~ msgstr ""
-#~ "Cette documentation est personnalisable et "
-#~ "peut être modifiée pour inclure des "
-#~ "informations spécifiques à votre "
-#~ "implémentation."
-
-#~ msgid ""
-#~ "The application includes a comprehensive "
-#~ "user management system with role-based"
-#~ " permissions:"
-#~ msgstr ""
-#~ "L'application inclut un système complet "
-#~ "de gestion des utilisateurs avec des "
-#~ "permissions basées sur les rôles :"
-
-#~ msgid "User authentication and authorization"
-#~ msgstr "Authentification et autorisation des utilisateurs"
-
-#~ msgid "Role-based access control"
-#~ msgstr "Contrôle d'accès basé sur les rôles"
-
-#~ msgid "Permission management"
-#~ msgstr "Gestion des permissions"
-
-#~ msgid ""
-#~ "The application uses PostgreSQL as its"
-#~ " database with Alembic for migrations:"
-#~ msgstr ""
-#~ "L'application utilise PostgreSQL comme base"
-#~ " de données avec Alembic pour les "
-#~ "migrations :"
-
-#~ msgid "Automatic database migrations"
-#~ msgstr "Migrations automatiques de la base de données"
-
-#~ msgid "SQLAlchemy ORM for database access"
-#~ msgstr "SQLAlchemy ORM pour l'accès à la base de données"
-
-#~ msgid "Efficient data management"
-#~ msgstr "Gestion efficace des données"
-
-#~ msgid "The application supports multiple environments:"
-#~ msgstr "L'application prend en charge plusieurs environnements :"
-
-#~ msgid "Development"
-#~ msgstr "Développement"
-
-#~ msgid "Testing"
-#~ msgstr "Test"
-
-#~ msgid "Demo"
-#~ msgstr "Démo"
-
-#~ msgid "The application can be deployed using Docker:"
-#~ msgstr "L'application peut être déployée avec Docker :"
-
-#~ msgid "Docker Compose for local development"
-#~ msgstr "Docker Compose pour le développement local"
-
-#~ msgid "Ansible for production deployment"
-#~ msgstr "Ansible pour le déploiement en production"
-
-#~ msgid "CI/CD pipeline integration"
-#~ msgstr "Intégration de la chaîne CI/CD"
+#~ "Les comptes admin et reviewer par "
+#~ "défaut sont créés au démarrage à "
+#~ "partir de ADMIN_USER_* et REVIEWER_USER_* "
+#~ "(copier .env.example vers .env en dev"
+#~ " ; variables GitLab CI "
+#~ "INTEGRATION_/VALIDATION_/PROD_ sur les VM)."
 

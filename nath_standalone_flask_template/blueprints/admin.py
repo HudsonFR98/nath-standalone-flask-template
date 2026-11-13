@@ -6,11 +6,18 @@ from sqlalchemy import desc
 from flask_babel import gettext as _
 
 from nath_standalone_flask_template.lib import config
-from nath_standalone_flask_template.lib.flask_util import admin_required
+from nath_standalone_flask_template.lib.const import CONTEXT_VALIDATION
+from nath_standalone_flask_template.lib.flask_util import (
+    admin_required,
+    admin_role_required,
+    staff_required,
+)
+from nath_standalone_flask_template.lib.exc import DomainError
 from nath_standalone_flask_template.models.task import TaskExecution, ScheduledTask
-from nath_standalone_flask_template.models.user import User, Role
+from nath_standalone_flask_template.models.user import User
 from nath_standalone_flask_template.lib.task_scheduler import task_scheduler
 from nath_standalone_flask_template.lib.database import DBSession
+from nath_standalone_flask_template import dao
 
 admin = Blueprint('admin', __name__, url_prefix='/admin')
 log = logging.getLogger(__name__)
@@ -21,7 +28,7 @@ log = logging.getLogger(__name__)
 
 @admin.route('/tasks')
 @login_required
-@admin_required
+@staff_required
 def tasks():
     """Async tasks management page"""
     try:
@@ -55,7 +62,7 @@ def tasks():
 
 @admin.route('/api/task/<task_name>/status')
 @login_required
-@admin_required
+@staff_required
 def task_status(task_name):
     """Get task status API endpoint"""
     try:
@@ -96,7 +103,7 @@ def task_status(task_name):
 
 @admin.route('/api/executions')
 @login_required
-@admin_required
+@staff_required
 def executions():
     """Get task executions with filtering"""
     try:
@@ -142,7 +149,7 @@ def executions():
 
 @admin.route('/api/statistics')
 @login_required
-@admin_required
+@staff_required
 def statistics():
     """Get task execution statistics"""
     try:
@@ -198,7 +205,7 @@ def statistics():
 
 @admin.route('/logs')
 @login_required
-@admin_required
+@admin_role_required
 def logs():
     """View application logs"""
     try:
@@ -226,26 +233,51 @@ def logs():
 
 @admin.route('/users')
 @login_required
-@admin_required
+@staff_required
 def users():
     """Users management page"""
     try:
         # Get all users
         users = User.query.all()
         
-        # Get all available roles
-        available_roles = Role.query.all()
-        
-        return render_template('admin/users.html',
-                              users=users,
-                              available_roles=available_roles)
-    
+        available_roles = dao.list_roles()
+
+        return render_template(
+            'admin/users.html',
+            users=users,
+            available_roles=available_roles,
+            validation_reviewer_guest_login=dao.is_validation_reviewer_guest_login_enabled(),
+            show_validation_guest_setting=(config.CONTEXT == CONTEXT_VALIDATION),
+        )
+
     except Exception as e:
         log.error(f"Error loading users page: {e}")
         flash(_('Error loading users data. Please check database connection.'), 'error')
-        return render_template('admin/users.html',
-                              users=[],
-                              available_roles=[])
+        return render_template(
+            'admin/users.html',
+            users=[],
+            available_roles=[],
+            validation_reviewer_guest_login=False,
+            show_validation_guest_setting=(config.CONTEXT == CONTEXT_VALIDATION),
+        )
+
+
+@admin.route('/settings/validation-reviewer-guest', methods=['POST'])
+@login_required
+@admin_required
+def set_validation_reviewer_guest():
+    if config.CONTEXT != CONTEXT_VALIDATION:
+        flash(_('This setting only applies in the validation context.'), 'error')
+        return redirect(url_for('admin.users'))
+    enabled = request.form.get('enabled') == 'on'
+    dao.set_validation_reviewer_guest_login(enabled)
+    flash(
+        _('Validation reviewer guest login enabled.')
+        if enabled
+        else _('Validation reviewer guest login disabled.'),
+        'message',
+    )
+    return redirect(url_for('admin.users'))
 
 
 @admin.route('/create_user', methods=['POST'])
@@ -284,7 +316,7 @@ def create_user():
         # Add roles
         for role_id in role_ids:
             try:
-                role = Role.query.get(int(role_id))
+                role = dao.get_role(int(role_id))
                 if role:
                     new_user.add_role(role)
             except (ValueError, TypeError):
@@ -351,7 +383,7 @@ def edit_user():
         user.roles.clear()  # Remove all existing roles
         for role_id in role_ids:
             try:
-                role = Role.query.get(int(role_id))
+                role = dao.get_role(int(role_id))
                 if role:
                     user.add_role(role)
             except (ValueError, TypeError):
@@ -387,7 +419,13 @@ def get_user(user_id):
             'last_name': user.last_name,
             'email': user.email,
             'active': user.active,
-            'roles': [role.id for role in user.roles]
+            'roles': [role.id for role in user.roles],
+            'has_api_token': user.has_api_token(),
+            'api_token_prefix': user.api_token_prefix,
+            'api_token_created_at': (
+                user.api_token_created_at.isoformat()
+                if user.api_token_created_at else None
+            ),
         })
     
     except Exception as e:
@@ -420,4 +458,239 @@ def toggle_user_status(user_id):
     except Exception as e:
         log.error(f"Error toggling user status: {e}")
         DBSession.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500 
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+def _api_token_payload(user, token=None):
+    payload = {
+        'success': True,
+        'user_id': user.id,
+        'username': user.ide,
+        'has_api_token': user.has_api_token(),
+        'prefix': user.api_token_prefix,
+        'created_at': (
+            user.api_token_created_at.isoformat()
+            if user.api_token_created_at else None
+        ),
+    }
+    if token is not None:
+        payload['token'] = token
+    return payload
+
+
+@admin.route('/api/user/<int:user_id>/token', methods=['POST'])
+@login_required
+@admin_required
+def generate_user_api_token(user_id):
+    try:
+        result = dao.generate_api_token(user_id)
+        log.info(
+            "API token generated for user '%s' by admin '%s'",
+            result['user'].ide,
+            current_user.ide,
+        )
+        return jsonify(_api_token_payload(result['user'], token=result['token']))
+    except DomainError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        log.error(f"Error generating API token: {e}")
+        DBSession.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin.route('/api/user/<int:user_id>/token/revoke', methods=['POST'])
+@login_required
+@admin_required
+def revoke_user_api_token(user_id):
+    try:
+        user = dao.revoke_api_token(user_id)
+        log.info(
+            "API token revoked for user '%s' by admin '%s'",
+            user.ide,
+            current_user.ide,
+        )
+        return jsonify(_api_token_payload(user))
+    except DomainError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        log.error(f"Error revoking API token: {e}")
+        DBSession.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin.route('/roles')
+@login_required
+@staff_required
+def roles():
+    """Roles management page"""
+    try:
+        return render_template(
+            'admin/roles.html',
+            roles=dao.list_roles(),
+            available_permissions=dao.list_permissions(),
+        )
+    except Exception as e:
+        log.error(f"Error loading roles page: {e}")
+        flash(_('Error loading roles data. Please check database connection.'), 'error')
+        return render_template('admin/roles.html', roles=[], available_permissions=[])
+
+
+@admin.route('/roles/create', methods=['POST'])
+@login_required
+@admin_required
+def create_role():
+    try:
+        dao.create_role(
+            name=request.form.get('name', ''),
+            description=request.form.get('description', ''),
+            permission_ids=request.form.getlist('permissions'),
+        )
+        flash(_('Role created successfully.'), 'message')
+        log.info("Role created by admin '%s'", current_user.ide)
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error creating role: {e}")
+        flash(_('Error creating role. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.roles'))
+
+
+@admin.route('/roles/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_role():
+    try:
+        dao.update_role(
+            pk=int(request.form.get('role_id')),
+            name=request.form.get('name', ''),
+            description=request.form.get('description', ''),
+            permission_ids=request.form.getlist('permissions'),
+        )
+        flash(_('Role updated successfully.'), 'message')
+        log.info("Role updated by admin '%s'", current_user.ide)
+    except (TypeError, ValueError):
+        flash(_('Role ID is required.'), 'error')
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error updating role: {e}")
+        flash(_('Error updating role. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.roles'))
+
+
+@admin.route('/roles/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_role():
+    try:
+        dao.delete_role(int(request.form.get('role_id')))
+        flash(_('Role deleted successfully.'), 'message')
+        log.info("Role deleted by admin '%s'", current_user.ide)
+    except (TypeError, ValueError):
+        flash(_('Role ID is required.'), 'error')
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error deleting role: {e}")
+        flash(_('Error deleting role. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.roles'))
+
+
+@admin.route('/api/role/<int:role_id>')
+@login_required
+@admin_required
+def get_role(role_id):
+    try:
+        role = dao.get_role(role_id)
+        if role is None:
+            return jsonify({'error': 'Role not found'}), 404
+        return jsonify({
+            'id': role.id,
+            'name': role.name,
+            'description': role.description,
+            'is_admin': role.is_admin_role(),
+            'permissions': [permission.id for permission in role.granted_permissions],
+        })
+    except Exception as e:
+        log.error(f"Error getting role data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin.route('/permissions')
+@login_required
+@staff_required
+def permissions():
+    """Permissions management page"""
+    try:
+        return render_template(
+            'admin/permissions.html',
+            permissions=dao.list_permissions(),
+        )
+    except Exception as e:
+        log.error(f"Error loading permissions page: {e}")
+        flash(_('Error loading permissions data. Please check database connection.'), 'error')
+        return render_template('admin/permissions.html', permissions=[])
+
+
+@admin.route('/permissions/create', methods=['POST'])
+@login_required
+@admin_required
+def create_permission():
+    try:
+        dao.create_permission(
+            name=request.form.get('name', ''),
+            description=request.form.get('description', ''),
+        )
+        flash(_('Permission created successfully.'), 'message')
+        log.info("Permission created by admin '%s'", current_user.ide)
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error creating permission: {e}")
+        flash(_('Error creating permission. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.permissions'))
+
+
+@admin.route('/permissions/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_permission():
+    try:
+        dao.update_permission(
+            pk=int(request.form.get('permission_id')),
+            description=request.form.get('description', ''),
+        )
+        flash(_('Permission updated successfully.'), 'message')
+        log.info("Permission updated by admin '%s'", current_user.ide)
+    except (TypeError, ValueError):
+        flash(_('Permission ID is required.'), 'error')
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error updating permission: {e}")
+        flash(_('Error updating permission. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.permissions'))
+
+
+@admin.route('/permissions/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_permission():
+    try:
+        dao.delete_permission(int(request.form.get('permission_id')))
+        flash(_('Permission deleted successfully.'), 'message')
+        log.info("Permission deleted by admin '%s'", current_user.ide)
+    except (TypeError, ValueError):
+        flash(_('Permission ID is required.'), 'error')
+    except DomainError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        log.error(f"Error deleting permission: {e}")
+        flash(_('Error deleting permission. Please try again.'), 'error')
+        DBSession.rollback()
+    return redirect(url_for('admin.permissions')) 

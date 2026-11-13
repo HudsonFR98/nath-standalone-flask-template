@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div class="container mt-4">
-    <h2>{{ _('Welcome to the Dashboard') }}</h2>
+<div class="dashboard-home">
+    <p class="dashboard-greeting text-muted">{{ _('Welcome') }}, {{ current_user.ide }}</p>
+
+    <h1 class="dashboard-app-name">{{ _('Nath Standalone Flask Template') }}</h1>
+    <p class="dashboard-version font-monospace">{{ VERSION }}{% if CONTEXT %} <span class="dashboard-context text-uppercase">· {{ CONTEXT }}</span>{% endif %}</p>
+
+    <p class="dashboard-summary">
+        {{ _('Authentication and roles, admin UI, REST API tokens, PostgreSQL and Alembic, Redis-backed tasks, translations, and Docker / GitLab deployment—ready for your own features.') }}
+    </p>
+
+    <p class="dashboard-author">
+        <span class="dashboard-author-label text-muted">{{ _('Developed by') }}</span>
+        <span class="dashboard-author-name">Nathanael Debanne</span>
+    </p>
+
+    <p class="dashboard-doc">
+        <a href="{{ url_for('doc.index') }}">{{ _('Open documentation') }}</a>
+    </p>
 </div>
 {% endblock %}
