@@ -33,6 +33,11 @@
           admin_user_first_name: "{{ lookup('vars', 'admin_user_first_name') }}"
           admin_user_last_name: "{{ lookup('vars', 'admin_user_last_name') }}"
           admin_user_email: "{{ lookup('vars', 'admin_user_email') }}"
+          reviewer_user_username: "{{ lookup('vars', 'reviewer_user_username') }}"
+          reviewer_user_password: "{{ lookup('vars', context + '_reviewer_user_password') }}"
+          reviewer_user_first_name: "{{ lookup('vars', 'reviewer_user_first_name') }}"
+          reviewer_user_last_name: "{{ lookup('vars', 'reviewer_user_last_name') }}"
+          reviewer_user_email: "{{ lookup('vars', 'reviewer_user_email') }}"
 
   roles:
     - docker

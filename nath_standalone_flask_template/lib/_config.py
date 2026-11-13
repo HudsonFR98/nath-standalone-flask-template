@@ -118,6 +118,19 @@ def require_env(name: str) -> str:
     return value
 
 
+def optional_env(name: str) -> str | None:
+    """Return env var value, or None if unset or blank."""
+    value = os.environ.get(name)
+    if value is None or str(value).strip() == "":
+        return None
+    return value
+
+
+def reviewer_bootstrap_configured() -> bool:
+    """True when REVIEWER_USER_USERNAME and REVIEWER_USER_PASSWORD are both set."""
+    return bool(optional_env("REVIEWER_USER_USERNAME") and optional_env("REVIEWER_USER_PASSWORD"))
+
+
 def build_db_uri() -> str:
     """
     Build SQLAlchemy DB URI from environment variables
@@ -160,6 +173,12 @@ class Config(object):
     ADMIN_USER_FIRST_NAME = require_env("ADMIN_USER_FIRST_NAME")
     ADMIN_USER_LAST_NAME = require_env("ADMIN_USER_LAST_NAME")
     ADMIN_USER_EMAIL = require_env("ADMIN_USER_EMAIL")
+
+    REVIEWER_USER_USERNAME = optional_env("REVIEWER_USER_USERNAME")
+    REVIEWER_USER_PASSWORD = optional_env("REVIEWER_USER_PASSWORD")
+    REVIEWER_USER_FIRST_NAME = optional_env("REVIEWER_USER_FIRST_NAME")
+    REVIEWER_USER_LAST_NAME = optional_env("REVIEWER_USER_LAST_NAME")
+    REVIEWER_USER_EMAIL = optional_env("REVIEWER_USER_EMAIL")
 
     # Database (same building blocks in all contexts; DB host differs via DB_IP)
     DB_URI = build_db_uri()

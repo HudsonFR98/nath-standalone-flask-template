@@ -67,6 +67,7 @@ Per environment, `<ENV>` ∈ {`INTEGRATION`, `VALIDATION`, `PROD`}:
 | `<ENV>_POSTGRES_USER`, `<ENV>_POSTGRES_PASSWORD`, `<ENV>_POSTGRES_DB`, `<ENV>_NSFT_DB_NAME` | password: yes | prod only | Postgres and app database for that environment |
 | `<ENV>_SECRET_KEY` | yes | prod only | |
 | `<ENV>_ADMIN_USER_USERNAME`, `_PASSWORD`, `_EMAIL`, `_FIRST_NAME`, `_LAST_NAME` | password: yes | prod only | admin user created by the app |
+| `<ENV>_REVIEWER_USER_*` (optional) | password: yes on `_PASSWORD` | as needed | bootstrap reviewer only when `_USERNAME` and `_PASSWORD` are both set |
 | `<ENV>_ANSIBLE_BECOME_PASSWORD` | yes | — | only if `Nath` has no passwordless sudo (see 05) |
 
 Scope a variable to its GitLab environment (`integration` / `validation` / `prod`) when you prefer the same name with different values; every job declares its `environment:`.

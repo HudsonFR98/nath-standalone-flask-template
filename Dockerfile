@@ -53,6 +53,8 @@ RUN /opt/env3/nath_standalone_flask_template/bin/pip install --upgrade pip setup
     && /opt/env3/nath_standalone_flask_template/bin/pip install -r deploy/requirements.txt \
     && /opt/env3/nath_standalone_flask_template/bin/pip install -e .
 
+ENV PATH="/opt/env3/nath_standalone_flask_template/bin:${PATH}"
+
 # Expose port
 EXPOSE 8080
 

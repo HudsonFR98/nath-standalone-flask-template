@@ -25,7 +25,10 @@ variables:
 #             <ENV>_VM_FQDN, <ENV>_POSTGRES_USER, <ENV>_POSTGRES_PASSWORD (masked),
 #             <ENV>_POSTGRES_DB, <ENV>_NSFT_DB_NAME, <ENV>_SECRET_KEY (masked),
 #             <ENV>_ADMIN_USER_USERNAME, <ENV>_ADMIN_USER_PASSWORD (masked),
-#             <ENV>_ADMIN_USER_EMAIL, <ENV>_ADMIN_USER_FIRST_NAME, <ENV>_ADMIN_USER_LAST_NAME
+#             <ENV>_ADMIN_USER_EMAIL, <ENV>_ADMIN_USER_FIRST_NAME, <ENV>_ADMIN_USER_LAST_NAME,
+#             optional: <ENV>_REVIEWER_USER_USERNAME, <ENV>_REVIEWER_USER_PASSWORD (masked),
+#                       <ENV>_REVIEWER_USER_EMAIL, <ENV>_REVIEWER_USER_FIRST_NAME, <ENV>_REVIEWER_USER_LAST_NAME
+#                       (both username and password required to bootstrap the reviewer user)
 #             optional: <ENV>_VM_GENERATION_SEED
 #   integration runs on every branch: its variables (and the shared Proxmox/Pi-hole
 #   ones) must NOT be "protected", or feature-branch pipelines cannot see them.
@@ -289,6 +292,11 @@ stages:
       --admin-user-first-name "$(printenv "${ENV_PREFIX}_ADMIN_USER_FIRST_NAME" || true)"
       --admin-user-last-name "$(printenv "${ENV_PREFIX}_ADMIN_USER_LAST_NAME" || true)"
       --admin-user-email "$(printenv "${ENV_PREFIX}_ADMIN_USER_EMAIL")"
+      --reviewer-user-username "$(printenv "${ENV_PREFIX}_REVIEWER_USER_USERNAME")"
+      --reviewer-user-password "$(printenv "${ENV_PREFIX}_REVIEWER_USER_PASSWORD")"
+      --reviewer-user-first-name "$(printenv "${ENV_PREFIX}_REVIEWER_USER_FIRST_NAME" || true)"
+      --reviewer-user-last-name "$(printenv "${ENV_PREFIX}_REVIEWER_USER_LAST_NAME" || true)"
+      --reviewer-user-email "$(printenv "${ENV_PREFIX}_REVIEWER_USER_EMAIL")"
 
 # ===========================================================================
 # docker

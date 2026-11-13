@@ -1,70 +1,130 @@
 import hashlib
 import logging
 from typing import List, Optional
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship, validates
-from sqlalchemy.ext.declarative import declared_attr
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from nath_standalone_flask_template.lib.database import Base, DBSession
 from nath_standalone_flask_template.lib import config
+from nath_standalone_flask_template.lib._config import reviewer_bootstrap_configured
+from nath_standalone_flask_template.lib.const import (
+    ADMIN_ROLE_NAME,
+    DEFAULT_PERMISSIONS,
+)
 
 log = logging.getLogger(__name__)
 
-# Association table for user-role many-to-many relationship
 user_roles = Table(
     'user_roles',
     Base.metadata,
     Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
-    Column('role_id', Integer, ForeignKey('roles.id'), primary_key=True)
+    Column('role_id', Integer, ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True)
 )
+
+role_permissions = Table(
+    'role_permissions',
+    Base.metadata,
+    Column('role_id', Integer, ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True),
+    Column('permission_id', Integer, ForeignKey('permissions.id', ondelete='RESTRICT'), primary_key=True)
+)
+
+
+class Permission(Base):
+    """Named permission slug attached to one or more roles."""
+    __tablename__ = 'permissions'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), unique=True, nullable=False)
+    description = Column(String(255))
+    is_system = Column(Boolean, default=False, nullable=False)
+
+    roles = relationship(
+        'Role',
+        secondary=role_permissions,
+        back_populates='granted_permissions',
+    )
+
+    def __init__(self, name, description=None, is_system=False):
+        self.name = name
+        self.description = description
+        self.is_system = is_system
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def ensure_defaults(cls) -> List["Permission"]:
+        """Upsert the built-in permission slugs used by the template."""
+        result = []
+        for name, description in DEFAULT_PERMISSIONS:
+            perm = cls.query.filter_by(name=name).first()
+            if perm is None:
+                perm = cls(name=name, description=description, is_system=True)
+                DBSession.add(perm)
+            else:
+                perm.is_system = True
+                if not perm.description:
+                    perm.description = description
+            result.append(perm)
+        DBSession.flush()
+        return result
+
 
 class Role(Base):
     """Role model for permission management"""
     __tablename__ = 'roles'
-    
+
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(String(255))
-    
-    # Define permissions as a comma-separated string of permission names
-    permissions = Column(String(255), default='')
-    
-    # Relationship with users
+
     users = relationship('User', secondary=user_roles, back_populates='roles')
-    
-    def __init__(self, name, description=None, permissions=None):
+    granted_permissions = relationship(
+        'Permission',
+        secondary=role_permissions,
+        back_populates='roles',
+    )
+
+    def __init__(self, name, description=None):
         self.name = name
         self.description = description
-        self.permissions = ','.join(permissions) if permissions else ''
-    
+
     def get_permissions(self) -> List[str]:
-        """Get the list of permissions for this role"""
-        return self.permissions.split(',') if self.permissions else []
-    
+        """Permission slugs granted by this role."""
+        return [permission.name for permission in self.granted_permissions]
+
     def has_permission(self, permission: str) -> bool:
-        """Check if this role has a specific permission"""
         return permission in self.get_permissions()
-    
-    def add_permission(self, permission: str):
-        """Add a permission to this role"""
-        permissions = self.get_permissions()
-        if permission not in permissions:
-            permissions.append(permission)
-            self.permissions = ','.join(permissions)
-    
-    def remove_permission(self, permission: str):
-        """Remove a permission from this role"""
-        permissions = self.get_permissions()
-        if permission in permissions:
-            permissions.remove(permission)
-            self.permissions = ','.join(permissions)
+
+    def add_permission(self, permission):
+        """Attach a Permission instance or look it up by slug."""
+        if isinstance(permission, str):
+            record = Permission.query.filter_by(name=permission).first()
+            if record is None:
+                raise ValueError(f"Unknown permission: {permission}")
+            permission = record
+        if permission not in self.granted_permissions:
+            self.granted_permissions.append(permission)
+
+    def remove_permission(self, permission):
+        if isinstance(permission, str):
+            permission = next(
+                (item for item in self.granted_permissions if item.name == permission),
+                None,
+            )
+        if permission is not None and permission in self.granted_permissions:
+            self.granted_permissions.remove(permission)
+
+    def is_admin_role(self) -> bool:
+        return self.name == ADMIN_ROLE_NAME
+
 
 class User(Base, UserMixin):
     """User model with role-based permissions"""
     __tablename__ = 'users'
-    
+
     id = Column(Integer, primary_key=True)
     ide = Column(String(50), unique=True, nullable=False)  # Username
     pwd = Column(String(255), nullable=False)  # Werkzeug hash (scrypt or pbkdf2)
@@ -73,25 +133,26 @@ class User(Base, UserMixin):
     email = Column(String(100))
     active = Column(Boolean, default=True)
     has_left = Column(Boolean, default=False)
-    
-    # Optional fields from the original model
+
     ptf_id = Column(Integer)
     center_id = Column(Integer)
-    
-    # Relationship with roles
+
+    api_token_hash = Column(String(64), unique=True, nullable=True)
+    api_token_prefix = Column(String(16), nullable=True)
+    api_token_created_at = Column(DateTime, nullable=True)
+
     roles = relationship('Role', secondary=user_roles, back_populates='users')
-    
-    # Cache for permissions
+
     _permissions = None
-    
+
     @validates('pwd')
     def _hash_password(self, key, password):
         """Hash the password using Werkzeug's secure password hashing"""
         if password and not password.startswith(('pbkdf2:', 'scrypt:', 'sha256$')):
             return generate_password_hash(password)
         return password
-    
-    def __init__(self, ide, pwd, first_name=None, last_name=None, email=None, 
+
+    def __init__(self, ide, pwd, first_name=None, last_name=None, email=None,
                  active=True, has_left=False, ptf_id=None, center_id=None):
         self.ide = ide
         self.pwd = pwd  # Will be hashed by the validator
@@ -102,68 +163,68 @@ class User(Base, UserMixin):
         self.has_left = has_left
         self.ptf_id = ptf_id
         self.center_id = center_id
-    
+
     def __str__(self):
         """String representation of the user"""
         return f"{self.first_name} {self.last_name}"
-    
-    # Flask-Login required methods
+
     def get_id(self):
         """Return the user ID as a string (required by Flask-Login)"""
         return str(self.id)
-    
+
     def is_authenticated(self):
         """Return True if the user is authenticated"""
         return self.active and not self.has_left
-    
+
     def is_active(self):
         """Return True if the user is active"""
         return self.active and not self.has_left
-    
+
     def reload_permissions(self):
         """Reload the user's permissions from their roles"""
         self._permissions = set()
         for role in self.roles:
             self._permissions.update(role.get_permissions())
-    
+
     def has_permission(self, permission: str) -> bool:
         """Check if the user has a specific permission"""
         if self._permissions is None:
             self.reload_permissions()
         return permission in (self._permissions or set())
-    
-    def has_role(self, role_name: str) -> bool:
-        """Check if the user has a specific role"""
-        return any(role.name == role_name for role in self.roles)
-    
+
+    def has_role(self, *role_names: str) -> bool:
+        names = set(role_names)
+        return any(role.name in names for role in self.roles)
+
+    def has_api_token(self) -> bool:
+        return bool(self.api_token_hash)
+
+    def can_use_api_token(self) -> bool:
+        return self.active and not self.has_left and self.has_api_token()
+
     def add_role(self, role):
         """Add a role to the user"""
         if role not in self.roles:
             self.roles.append(role)
-            self._permissions = None  # Reset permissions cache
-    
+            self._permissions = None
+
     def remove_role(self, role):
         """Remove a role from the user"""
         if role in self.roles:
             self.roles.remove(role)
-            self._permissions = None  # Reset permissions cache
-    
+            self._permissions = None
+
     def check_password(self, password: str) -> bool:
         """Check if the provided password matches the stored hash"""
-        # Check if password is in old SHA256 format
         if self.pwd.startswith('sha256$'):
-            # Legacy format - check against SHA256 hash
             hashed_password = hashlib.sha256(password.encode()).hexdigest()
             if self.pwd == f'sha256${hashed_password}':
-                # Migrate to new format on successful login
                 self.pwd = generate_password_hash(password)
                 DBSession.commit()
                 return True
             return False
-        else:
-            # New format - use Werkzeug's check_password_hash
-            return check_password_hash(self.pwd, password)
-    
+        return check_password_hash(self.pwd, password)
+
     @classmethod
     def authenticate(cls, username: str, password: str) -> Optional['User']:
         """Authenticate a user with username and password"""
@@ -174,73 +235,103 @@ class User(Base, UserMixin):
 
     @classmethod
     def _get_initial_admin_data(cls) -> dict:
-        """Load initial admin values from application config with safe defaults."""
-        username = config.ADMIN_USER_USERNAME
-        password = config.ADMIN_USER_PASSWORD
-        first_name = config.ADMIN_USER_FIRST_NAME
-        last_name = config.ADMIN_USER_LAST_NAME
-        email = config.ADMIN_USER_EMAIL
+        return {
+            'username': config.ADMIN_USER_USERNAME,
+            'password': config.ADMIN_USER_PASSWORD,
+            'first_name': config.ADMIN_USER_FIRST_NAME,
+            'last_name': config.ADMIN_USER_LAST_NAME,
+            'email': config.ADMIN_USER_EMAIL,
+        }
+
+    @classmethod
+    def _get_initial_reviewer_data(cls) -> dict | None:
+        if not reviewer_bootstrap_configured():
+            return None
+        username = config.REVIEWER_USER_USERNAME
         return {
             'username': username,
-            'password': password,
-            'first_name': first_name,
-            'last_name': last_name,
-            'email': email
+            'password': config.REVIEWER_USER_PASSWORD,
+            'first_name': config.REVIEWER_USER_FIRST_NAME or username,
+            'last_name': config.REVIEWER_USER_LAST_NAME or '',
+            'email': config.REVIEWER_USER_EMAIL or f'{username}@local',
         }
-    
+
+    @classmethod
+    def _upsert_bootstrap_user(cls, data: dict, role: Role, existing=None):
+        user = existing
+        created = False
+        if user is None:
+            user = cls(
+                ide=data['username'],
+                pwd=data['password'],
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                email=data['email'],
+                active=True,
+                has_left=False,
+            )
+            DBSession.add(user)
+            created = True
+        else:
+            user.ide = data['username']
+            user.first_name = data['first_name']
+            user.last_name = data['last_name']
+            user.email = data['email']
+            user.active = True
+            user.has_left = False
+            user.pwd = data['password']
+        if role not in user.roles:
+            user.add_role(role)
+        log.info(
+            "%s user '%s' from configuration",
+            "Created" if created else "Updated",
+            data['username'],
+        )
+        return user
+
     @classmethod
     def create_admin_if_not_exists(cls):
-        """Ensure admin user exists and matches configured values."""
-        admin_data = cls._get_initial_admin_data()
+        """Ensure default permissions, admin/reviewer roles, and bootstrap users exist."""
+        default_permissions = Permission.ensure_defaults()
 
-        # Create admin role if it doesn't exist
-        admin_role = Role.query.filter_by(name='admin').first()
+        admin_role = Role.query.filter_by(name=ADMIN_ROLE_NAME).first()
         if not admin_role:
             admin_role = Role(
-                name='admin',
+                name=ADMIN_ROLE_NAME,
                 description='Administrator with all permissions',
-                permissions=['admin', 'read', 'write', 'delete']
             )
             DBSession.add(admin_role)
+            DBSession.flush()
 
-        # Technical admin account is expected to be user id 1
-        admin_user = cls.query.get(1)
-        
-        if not admin_user:
-            # Create admin user
-            admin_user = cls(
-                ide=admin_data['username'],
-                pwd=admin_data['password'],  # Will be hashed by the validator
-                first_name=admin_data['first_name'],
-                last_name=admin_data['last_name'],
-                email=admin_data['email'],
-                active=True,
-                has_left=False
+        for permission in default_permissions:
+            admin_role.add_permission(permission)
+
+        reviewer_role = Role.query.filter_by(name='reviewer').first()
+        if not reviewer_role:
+            reviewer_role = Role(
+                name='reviewer',
+                description='Reviewer with read, write and delete',
             )
-            admin_user.add_role(admin_role)
-            DBSession.add(admin_user)
-            DBSession.commit()
-            log.info("Created admin user with username '%s'", admin_data['username'])
-            return admin_user
-        else:
-            # Update existing admin user from config
-            admin_user.ide = admin_data['username']
-            admin_user.first_name = admin_data['first_name']
-            admin_user.last_name = admin_data['last_name']
-            admin_user.email = admin_data['email']
-            admin_user.active = True
-            admin_user.has_left = False
-            if admin_role not in admin_user.roles:
-                admin_user.add_role(admin_role)
-            admin_user.pwd = admin_data['password']  # Will be hashed by the validator
+            DBSession.add(reviewer_role)
+            DBSession.flush()
+        for permission in default_permissions:
+            if permission.name != 'admin':
+                reviewer_role.add_permission(permission)
 
-            DBSession.commit()
-            log.info("Updated admin user '%s' from configuration", admin_data['username'])
-        return admin_user
+        admin_data = cls._get_initial_admin_data()
+        cls._upsert_bootstrap_user(admin_data, admin_role, existing=cls.query.get(1))
+        reviewer_data = cls._get_initial_reviewer_data()
+        if reviewer_data is not None:
+            cls._upsert_bootstrap_user(
+                reviewer_data,
+                reviewer_role,
+                existing=cls.query.filter_by(ide=reviewer_data['username']).first(),
+            )
+        DBSession.commit()
 
-# Add query property to models
+
 User.query = DBSession.query_property()
 Role.query = DBSession.query_property()
+Permission.query = DBSession.query_property()
 
-# For backward compatibility
 Service = None

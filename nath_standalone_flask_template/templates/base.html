@@ -58,7 +58,7 @@
           </div>
         </li>
         {% endif %}
-        {% if current_user.is_authenticated and current_user.has_permission('admin') %}
+        {% if current_user.is_authenticated and current_user.has_role('admin', 'reviewer') %}
         <li class="nav-item dropdown active">
           <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown"
             aria-expanded="false">
@@ -66,15 +66,20 @@
           </a>
           <div class="dropdown-menu" aria-labelledby="adminDropdown">
             <a class="dropdown-item" href="{{ url_for('admin.users') }}">{{ _('Users') }}</a>
+            <a class="dropdown-item" href="{{ url_for('admin.roles') }}">{{ _('Roles') }}</a>
+            <a class="dropdown-item" href="{{ url_for('admin.permissions') }}">{{ _('Permissions') }}</a>
             <a class="dropdown-item" href="{{ url_for('admin.tasks') }}">{{ _('Async Tasks') }}</a>
-            <a class="dropdown-item" href="{{ url_for('admin.logs') }}">{{ _('Logs') }}</a>
+            <a class="dropdown-item{% if not current_user.has_role('admin') %} disabled{% endif %}"
+              href="{{ url_for('admin.logs') if current_user.has_role('admin') else '#' }}"
+              {% if not current_user.has_role('admin') %}tabindex="-1" aria-disabled="true"{% endif %}>{{ _('Logs') }}</a>
           </div>
         </li>
         {% endif %}
       </ul>
       <span class="navbar-text" style="margin-right: 10px">
         {% if current_user.is_authenticated %}
-        {{ current_user.ide }} | <a href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
+        <i class="fas fa-user me-1" aria-hidden="true"></i>{{ current_user.ide }} |
+        <a href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
         {% endif %}
       </span>
       <span class="navbar-text" style="margin-right: 10px">

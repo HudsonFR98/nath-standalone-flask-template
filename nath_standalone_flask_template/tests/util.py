@@ -88,7 +88,11 @@ def unload(collections):
                 elif model == models.Role:
                     # Delete user_roles associations first to avoid foreign key violations
                     database.DBSession.execute(text("DELETE FROM user_roles"))
+                    database.DBSession.execute(text("DELETE FROM role_permissions"))
                     # Then delete roles
+                    database.DBSession.query(model).delete()
+                elif model == models.Permission:
+                    database.DBSession.execute(text("DELETE FROM role_permissions"))
                     database.DBSession.query(model).delete()
                 else:
                     # For other models, delete directly
@@ -149,9 +153,13 @@ def flush():
         database.DBSession.rollback()
         # Delete related records first to avoid foreign key constraints
         database.DBSession.execute(text("DELETE FROM user_roles"))
+        database.DBSession.execute(text("DELETE FROM role_permissions"))
         # Delete data from our test models
         models.User.query.delete()
         models.Role.query.delete()
+        models.Permission.query.filter_by(is_system=False).delete()
+        if getattr(models, 'AppSetting', None) is not None:
+            models.AppSetting.query.delete()
         # Commit the deletions
         database.DBSession.commit()
     except Exception as e:

@@ -11,10 +11,40 @@
         </div>
     </div>
 
-    <!-- Create User Button -->
+    {% if show_validation_guest_setting %}
     <div class="row mb-4">
         <div class="col-12">
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h6 class="card-title">{{ _('Validation access') }}</h6>
+                    <p class="text-muted small mb-3">
+                        {{ _('When enabled, visitors on this validation instance sign in as the reviewer without a password until they log out. They can also use Connect as reviewer on the login page.') }}
+                    </p>
+                    <form method="POST" action="{{ url_for('admin.set_validation_reviewer_guest') }}"
+                        class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                id="validationReviewerGuestLogin" name="enabled"
+                                {% if validation_reviewer_guest_login %}checked{% endif %}
+                                {% if not current_user.has_permission('admin') %}disabled{% endif %}>
+                            <label class="form-check-label" for="validationReviewerGuestLogin">
+                                {{ _('Allow passwordless reviewer login') }}
+                            </label>
+                        </div>
+                        {% if current_user.has_permission('admin') %}
+                        <button type="submit" class="btn btn-sm btn-primary">{{ _('Save') }}</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn btn-primary" {% if current_user.has_permission('admin') %}data-bs-toggle="modal"
+                data-bs-target="#createUserModal"{% else %}disabled{% endif %}>
                 <i class="fas fa-plus"></i> {{ _('Create New User') }}
             </button>
         </div>
@@ -37,6 +67,7 @@
                                     <th>{{ _('Last Name') }}</th>
                                     <th>{{ _('Email') }}</th>
                                     <th>{{ _('Roles') }}</th>
+                                    <th>{{ _('API Token') }}</th>
                                     <th>{{ _('Status') }}</th>
                                     <th>{{ _('Actions') }}</th>
                                 </tr>
@@ -50,8 +81,15 @@
                                     <td>{{ user.email or '-' }}</td>
                                     <td>
                                         {% for role in user.roles %}
-                                        <span class="badge bg-primary me-1">{{ role.name }}</span>
+                                        <span class="badge bg-primary me-1" title="{{ role.get_permissions()|join(', ') }}">{{ role.name }}</span>
                                         {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if user.has_api_token() %}
+                                        <code title="{{ user.api_token_created_at }}">{{ user.api_token_prefix }}…</code>
+                                        {% else %}
+                                        <span class="text-muted">{{ _('No token') }}</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if user.active and not user.has_left %}
@@ -65,12 +103,22 @@
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button class="btn btn-sm btn-info edit-user-btn"
-                                                data-user-id="{{ user.id }}">
+                                                data-user-id="{{ user.id }}"
+                                                {% if not current_user.has_permission('admin') %}disabled{% endif %}>
                                                 <i class="fas fa-edit"></i> {{ _('Edit') }}
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary api-token-btn"
+                                                data-user-id="{{ user.id }}"
+                                                data-username="{{ user.ide }}"
+                                                data-has-token="{{ 'true' if user.has_api_token() else 'false' }}"
+                                                data-token-prefix="{{ user.api_token_prefix or '' }}"
+                                                {% if not current_user.has_permission('admin') %}disabled{% endif %}>
+                                                <i class="fas fa-key"></i> {{ _('API Token') }}
                                             </button>
                                             {% if user.id != current_user.id %}
                                             <button class="btn btn-sm btn-warning toggle-user-btn"
-                                                data-user-id="{{ user.id }}" data-active="{{ user.active }}">
+                                                data-user-id="{{ user.id }}" data-active="{{ user.active }}"
+                                                {% if not current_user.has_permission('admin') %}disabled{% endif %}>
                                                 {% if user.active %}
                                                 <i class="fas fa-user-times"></i> {{ _('Deactivate') }}
                                                 {% else %}
@@ -194,6 +242,35 @@
     </div>
 </div>
 
+<div class="modal fade" id="apiTokenModal" tabindex="-1" aria-labelledby="apiTokenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="apiTokenModalLabel">{{ _('API Token') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">{{ _('Username') }}: <strong id="apiTokenUsername"></strong></p>
+                <p id="apiTokenStatus" class="text-muted"></p>
+                <div id="apiTokenSecretBox" class="alert alert-warning d-none" role="alert">
+                    <p class="mb-2">{{ _('Copy this token now. It will not be shown again.') }}</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="apiTokenSecret" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyApiTokenBtn">
+                            {{ _('Copy') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" id="revokeApiTokenBtn">{{ _('Revoke') }}</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close') }}</button>
+                <button type="button" class="btn btn-primary" id="generateApiTokenBtn">{{ _('Generate Token') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Edit user button click handler
@@ -235,6 +312,113 @@
                         alert('{{ _("Failed to load user data") }}');
                     });
             });
+        });
+
+        var apiTokenUserId = null;
+        var apiTokenHasToken = false;
+        var apiTokenReloadOnClose = false;
+        var apiTokenModalEl = document.getElementById('apiTokenModal');
+        var apiTokenModal = new bootstrap.Modal(apiTokenModalEl);
+        var noTokenLabel = {{ _('No token')|tojson }};
+        var tokenPrefixLabel = {{ _('Current token prefix:')|tojson }};
+        var replaceConfirm = {{ _('Generating a new token will replace the existing one. Continue?')|tojson }};
+        var revokeConfirm = {{ _('Revoke this API token? The user will no longer be able to call the API.')|tojson }};
+        var generateFailed = {{ _('Failed to generate API token')|tojson }};
+        var revokeFailed = {{ _('Failed to revoke API token')|tojson }};
+        var copiedLabel = {{ _('Copied')|tojson }};
+        var copyLabel = {{ _('Copy')|tojson }};
+
+        function setApiTokenStatus(hasToken, prefix) {
+            apiTokenHasToken = hasToken;
+            document.getElementById('revokeApiTokenBtn').disabled = !hasToken;
+            document.getElementById('apiTokenStatus').textContent = hasToken
+                ? tokenPrefixLabel + ' ' + (prefix || '')
+                : noTokenLabel;
+        }
+
+        document.querySelectorAll('.api-token-btn').forEach(function (button) {
+            button.addEventListener('click', function () {
+                apiTokenUserId = this.getAttribute('data-user-id');
+                apiTokenReloadOnClose = false;
+                document.getElementById('apiTokenUsername').textContent = this.getAttribute('data-username');
+                document.getElementById('apiTokenSecretBox').classList.add('d-none');
+                document.getElementById('apiTokenSecret').value = '';
+                document.getElementById('copyApiTokenBtn').textContent = copyLabel;
+                setApiTokenStatus(
+                    this.getAttribute('data-has-token') === 'true',
+                    this.getAttribute('data-token-prefix')
+                );
+                apiTokenModal.show();
+            });
+        });
+
+        document.getElementById('generateApiTokenBtn').addEventListener('click', function () {
+            if (apiTokenHasToken && !confirm(replaceConfirm)) {
+                return;
+            }
+            fetch('/admin/api/user/' + apiTokenUserId + '/token', { method: 'POST' })
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        return { ok: response.ok, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok || !result.data.success) {
+                        alert((result.data && result.data.message) || generateFailed);
+                        return;
+                    }
+                    document.getElementById('apiTokenSecret').value = result.data.token;
+                    document.getElementById('apiTokenSecretBox').classList.remove('d-none');
+                    document.getElementById('copyApiTokenBtn').textContent = copyLabel;
+                    setApiTokenStatus(true, result.data.prefix);
+                    apiTokenReloadOnClose = true;
+                })
+                .catch(function (error) {
+                    console.error('Error generating API token:', error);
+                    alert(generateFailed);
+                });
+        });
+
+        document.getElementById('revokeApiTokenBtn').addEventListener('click', function () {
+            if (!confirm(revokeConfirm)) {
+                return;
+            }
+            fetch('/admin/api/user/' + apiTokenUserId + '/token/revoke', { method: 'POST' })
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        return { ok: response.ok, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok || !result.data.success) {
+                        alert((result.data && result.data.message) || revokeFailed);
+                        return;
+                    }
+                    document.getElementById('apiTokenSecretBox').classList.add('d-none');
+                    document.getElementById('apiTokenSecret').value = '';
+                    setApiTokenStatus(false, '');
+                    apiTokenReloadOnClose = true;
+                })
+                .catch(function (error) {
+                    console.error('Error revoking API token:', error);
+                    alert(revokeFailed);
+                });
+        });
+
+        document.getElementById('copyApiTokenBtn').addEventListener('click', function () {
+            var secret = document.getElementById('apiTokenSecret');
+            if (!secret.value) {
+                return;
+            }
+            navigator.clipboard.writeText(secret.value).then(function () {
+                document.getElementById('copyApiTokenBtn').textContent = copiedLabel;
+            });
+        });
+
+        apiTokenModalEl.addEventListener('hidden.bs.modal', function () {
+            if (apiTokenReloadOnClose) {
+                location.reload();
+            }
         });
 
         // Toggle user status button click handler

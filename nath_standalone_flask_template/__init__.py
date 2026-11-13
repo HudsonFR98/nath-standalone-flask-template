@@ -16,7 +16,7 @@ from .blueprints.coverage import coverage
 from .blueprints.tests import test_output
 from .blueprints.i18n import i18n
 from .blueprints.admin import admin
-# from .blueprints.rest import rest
+from .blueprints.rest import rest
 
 
 def create_app():
@@ -220,10 +220,10 @@ def create_app():
     app.register_blueprint(doc, url_prefix='/doc/')
     app.register_blueprint(i18n, url_prefix='/i18n/')
     app.register_blueprint(admin, url_prefix='/admin/')
+    app.register_blueprint(rest, url_prefix='/rest')
     # Register coverage blueprint only in integration and local dev
     if config.CONTEXT in ['integration', 'dev']:
         app.register_blueprint(coverage, url_prefix='/coverage/')
     app.register_blueprint(test_output, url_prefix='/tests/')
-    # app.register_blueprint(rest, url_prefix='/rest')
 
     return app
