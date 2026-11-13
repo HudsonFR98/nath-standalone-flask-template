@@ -18,11 +18,13 @@ services:
       ADMIN_USER_FIRST_NAME: {{ env_config.admin_user_first_name }}
       ADMIN_USER_LAST_NAME: {{ env_config.admin_user_last_name }}
       ADMIN_USER_EMAIL: {{ env_config.admin_user_email }}
+{% if env_config.reviewer_user_username and env_config.reviewer_user_password %}
       REVIEWER_USER_USERNAME: {{ env_config.reviewer_user_username }}
       REVIEWER_USER_PASSWORD: {{ env_config.reviewer_user_password }}
       REVIEWER_USER_FIRST_NAME: {{ env_config.reviewer_user_first_name }}
       REVIEWER_USER_LAST_NAME: {{ env_config.reviewer_user_last_name }}
       REVIEWER_USER_EMAIL: {{ env_config.reviewer_user_email }}
+{% endif %}
       BUILD_DATE: {{ ansible_date_time.iso8601 | regex_replace('T', '.') | regex_replace(':', '.') | regex_replace('-', '.') | regex_replace('Z', '') }}
     volumes:
       - /var/log/nath_standalone_flask_template:/var/log/nath_standalone_flask_template
