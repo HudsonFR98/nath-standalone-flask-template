@@ -10,19 +10,15 @@ The application uses Alembic for database migrations. Alembic tracks changes to 
 
 When you make changes to your models (add/modify/remove tables, columns, etc.), you need to generate a new migration script. Here's how to do it in a containerized environment:
 
-1. Connect to the running application container:
+1. Connect to the running application container (service name `app`; container name follows `nsft_app_<context>` from `.env`):
    ```bash
-   docker exec -it nsft_app_dev bash
+   docker compose exec app bash
    ```
 
-2. Navigate to the application directory:
+2. Generate a new migration script (context and `DB_IP=db` come from Compose / `.env`):
    ```bash
-   cd /opt/nath-standalone-flask-template
-   ```
-
-3. Generate a new migration script:
-   ```bash
-   NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev DB_IP=nsft_db_dev alembic revision --autogenerate -m "Description of your changes"
+   cd /opt/nath_standalone_flask_template
+   alembic revision --autogenerate -m "Description of your changes"
    ```
 
    This command will:
@@ -36,20 +32,9 @@ When you make changes to your models (add/modify/remove tables, columns, etc.), 
 
 Migrations are automatically applied when the application container starts, thanks to the `docker-entrypoint.sh` script. However, if you need to apply migrations manually:
 
-1. Connect to the running application container:
-   ```bash
-   docker exec -it nsft_app_dev bash
-   ```
-
-2. Navigate to the application directory:
-   ```bash
-   cd /opt/nath-standalone-flask-template
-   ```
-
-3. Apply all pending migrations:
-   ```bash
-   NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev DB_IP=nsft_db_dev alembic upgrade head
-   ```
+```bash
+docker compose exec app bash -c 'cd /opt/nath_standalone_flask_template && alembic upgrade head'
+```
 
 ## Initial Database Setup
 
@@ -70,7 +55,7 @@ If you encounter issues with migrations:
 
 1. Check the application logs:
    ```bash
-   docker logs nsft_app_dev
+   docker compose logs app
    ```
 
 2. Ensure the database container is running and accessible:
@@ -82,9 +67,7 @@ If you encounter issues with migrations:
 
 4. If migrations fail, you can try to run them manually with more verbose output:
    ```bash
-   docker exec -it nsft_app_dev bash
-   cd /opt/nath-standalone-flask-template
-   NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev DB_IP=nsft_db_dev alembic upgrade head --verbose
+   docker compose exec app bash -c 'cd /opt/nath_standalone_flask_template && alembic upgrade head --verbose'
    ```
 
 ## Best Practices

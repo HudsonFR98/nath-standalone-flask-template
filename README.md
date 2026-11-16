@@ -4,9 +4,81 @@ NATH_STANDALONE_FLASK_TEMPLATE
 
 # Technical documentation for the Nath Standalone Flask Template Application
 
-The application's CI/CD pipeline is organized through GitLab CI/CD, with distinct stages for different environments. Here's a step-by-step breakdown of how it works:
+## Installation (recommended): Docker Compose on one host
 
-## Development Setup
+The **supported way to run this app in production** is **Docker Compose on your own machine or VM**. You do not need Ansible, Terraform, or Proxmox for that. The repo ships the same stack the app expects: **app + PostgreSQL + Redis**, configured through **`.env`** and the root **`docker-compose.yml`**.
+
+**Development** uses context `dev` (Flask debug server, source bind-mounted for hot reload). **Production** uses context `prod` (Gunicorn, stricter logging). You switch modes in **`.env` only**—the same `docker-compose.yml` interpolates names from `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT`.
+
+### How Compose uses the context from `.env`
+
+Docker Compose reads **`.env`** for variable substitution. With `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev` as default
+
+To switch `dev` ↔ `prod`, change the context in `.env`
+
+### 1. Configure secrets and bootstrap users
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with real values (no defaults in code—empty or missing required keys fail at startup):
+
+- **Context**: `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT` — `dev`, `prod`, or `validation`
+- **Postgres**: `POSTGRES_*`, `NSFT_DB_NAME`
+- **App**: `SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (placeholders are fine if you do not use Telegram alerts)
+- **Admin** (always created on first start): `ADMIN_USER_*`
+- **Reviewer** (optional): set `REVIEWER_USER_USERNAME` and `REVIEWER_USER_PASSWORD` together, or omit both—no reviewer user is created. Reviewer is a particular role and user that can access the application without any login, but is read-only. Is useful for demonstration purposes.
+
+### 2. Production-like mode
+
+Set in **`.env`**:
+
+```bash
+NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=prod
+```
+
+Optional but recommended for a real deployment (edit **`docker-compose.yml`**):
+
+`deploy/docker-entrypoint.sh` still runs **Alembic migrations** and starts **Gunicorn** when context is not `dev`.
+
+Then start the stack :
+
+```bash
+docker compose up -d --build
+```
+
+Open **http://localhost:8080**. Log in with the admin user from `.env`.
+
+Use **`validation`** instead of **`prod`** if you want pre-production behaviour (e.g. validation guest reviewer in Admin → Users). For day-to-day coding, switch back to **`dev`**.
+
+### 3. Updates
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Postgres data lives in the `postgres_data` volume unless you run `docker compose down -v`.
+
+---
+
+## Optional: GitLab CI, Proxmox, Terraform, Ansible
+
+This repository also includes an **automation stack for Nath’s homelab-style pipeline**: build image in GitLab, allocate a VM IP in Pi-hole, **Terraform** on **Proxmox**, deploy with **Ansible** (`deploy/ansible_deploy.py`), run tests on integration, then validation / manual prod. That path is **optional**; it mirrors what runs in `.gitlab-ci.yml` but is not required to install or operate the app.
+
+| Piece | Role |
+|--------|------|
+| [docs/infra_automation/](docs/infra_automation/) | Architecture, Pi-hole, Terraform, GitLab jobs |
+| `deploy/terraform/<env>` | Proxmox VM per environment |
+| `deploy/ansible/docker_deploy.yml` | Docker stack + nginx on a remote VM |
+| `.gitlab-ci.yml` | `integration` / `validation` / `prod` stages |
+
+Use **Compose + `.env`** for your installation; use **infra docs + CI** only if you want disposable VMs and automated deploys.
+
+---
+
+## Development setup
 
 ### Prerequisites
 - Docker and Docker Compose installed
@@ -39,7 +111,7 @@ The script automatically handles all name variations:
    ```bash
    ./setup_dev.sh
    ```
-3. Create you .env file using .env.exemple template
+3. Create your `.env` file from `.env.example` (see [Installation](#installation-recommended-docker-compose-on-one-host) for production)
 4. Start by building the development environment:
    ```bash
    docker compose up --build
@@ -52,10 +124,15 @@ The script automatically handles all name variations:
 
 
 ### Development Environment Details
-- **Database**: PostgreSQL 15 on port 5433 (container: `nsft_db_dev`)
-- **Application**: Flask app on port 8080 (container: `nsft_app_dev`)
-- **Redis**: Redis on port 6380 (container: `nsft_redis_dev`)
+
+With `NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev` in `.env` (default in `.env.example`):
+
+- **Database**: PostgreSQL 15 on host port 5433 (container `nsft_db_dev`)
+- **Application**: port 8080 (container `nsft_app_dev`)
+- **Redis**: host port 6380 (container `nsft_redis_dev`)
 - **Network**: `nsft_network_dev`
+
+Use **`docker compose exec app …`** (service name) or the container names above on the host.
 - **Logs**: Stored in `./logs/` directory
 - **User**: Container runs as UID 1000 for proper file permissions
 
@@ -71,11 +148,6 @@ The script automatically handles all name variations:
    - Both containers have healthchecks configured to ensure proper initialization
    - Volume configurations have been simplified for better compatibility
    - The Ansible deployment scripts install the full set of Docker packages needed for Docker 28.1.1
-
-**Run test in development**
-   ```
-   docker exec -it nsft_app_dev bash -c "NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev DB_IP=nsft_db_dev /opt/env3/nath_standalone_flask_template/bin/python nath_standalone_flask_template/tests/run_tests.py"
-   ```
 
 ### Resetting Development Database or Changing Database Password
 If you need to reset all development data (for example, after changing the database password or to start with a clean database):
@@ -111,9 +183,9 @@ If you need to restore your development database from a backup file in the `back
    docker compose rm -f db
    ```
 
-3. **Remove the database volume to ensure a clean restore:**
+3. **Remove the database volume to ensure a clean restore** (or `docker compose down -v`; volume name is `nsft-<context>_postgres_data`):
    ```bash
-   docker volume rm nath-standalone-flask-template_postgres_data
+   docker compose down -v
    ```
 
 4. **Start the database container fresh:**
@@ -128,12 +200,12 @@ If you need to restore your development database from a backup file in the `back
 
 6. **Restore from your chosen backup file. For example, to restore from the most recent backup:**
    ```bash
-   docker exec -i nsft_db_dev psql -U web -d nsft < backups/nsft_backup_YYYYMMDD_HHMMSS.sql
+   docker compose exec db psql -U web -d nsft < backups/nsft_backup_YYYYMMDD_HHMMSS.sql
    ```
 
    Or if you want to restore to the `postgres` database (which is the default):
    ```bash
-   docker exec -i nsft_db_dev psql -U web -d postgres < backups/nsft_backup_YYYYMMDD_HHMMSS.sql
+   docker compose exec db psql -U web -d postgres < backups/nsft_backup_YYYYMMDD_HHMMSS.sql
    ```
 
 7. **Start your application container:**
@@ -153,7 +225,7 @@ Dependencies (including pytest) are installed in the app image venv (`/opt/env3/
 From the host, with the stack up and `.env` loaded by Compose:
 
 ```bash
-# No database (NO_DB in test_context.py); uses container env (context=dev, DB_IP=nsft_db_dev)
+# No database (NO_DB in test_context.py); uses .env context and DB_IP=db in the container
 docker compose exec app python -m pytest nath_standalone_flask_template/tests/test_context.py -q
 
 # Full suite (same entry point as CI integration)
@@ -260,14 +332,14 @@ In Jinja2 templates:
 
 ### Translation workflow (Docker dev)
 
-Local dev runs in Compose (`nsft_app_dev`). **Do not** run Babel in `nsft_db_dev` (Postgres only). Use the **app** container; the project is mounted at `/opt/nath_standalone_flask_template`, so `.po` / `.mo` changes on the host and in the container are the same files.
+Local dev runs in Compose (`docker compose exec app`). Use the **app** service; the project is bind-mounted at `/opt/nath_standalone_flask_template`, so `.po` / `.mo` edits on the host match the container.
 
 Add a **shell function** once per terminal (a plain variable does not work: zsh treats `$APP_PY extract` as one command name):
 
 ```bash
 app_py() {
-  docker exec -it nsft_app_dev \
-    /opt/env3/nath_standalone_flask_template/bin/python \
+  docker compose exec app \
+    python \
     /opt/nath_standalone_flask_template/manage_translations.py "$@"
 }
 ```
@@ -286,8 +358,7 @@ One-shot: `app_py all`
 Without a function, run the full command each time:
 
 ```bash
-docker exec -it nsft_app_dev /opt/env3/nath_standalone_flask_template/bin/python \
-  /opt/nath_standalone_flask_template/manage_translations.py extract
+docker compose exec app python /opt/nath_standalone_flask_template/manage_translations.py extract
 ```
 
 Commands: `extract`, `update`, `compile`, `init <lang>`, `all`.

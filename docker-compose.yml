@@ -1,16 +1,20 @@
+# Project name prefixes containers, volumes, and networks (e.g. nsft-prod, nsft-dev).
+# Set NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT in .env (dev, prod, validation, …).
+name: "nsft-${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}"
+
 services:
   app:
     build: .
-    container_name: nsft_app_dev
+    container_name: "nsft_app_${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}"
     ports:
       - "8080:8080"
     env_file:
       - .env
     environment:
-      - NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT=dev
-      - DB_IP=nsft_db_dev
-      # Pytest and app deps live in the venv; bare /usr/local/bin/python has no pytest.
-      - PATH=/opt/env3/nath_standalone_flask_template/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      # Same value as in .env; default dev if missing (drives lib/_config.py and container names below).
+      NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT: ${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}
+      DB_IP: db
+      PATH: /opt/env3/nath_standalone_flask_template/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     depends_on:
       db:
         condition: service_healthy
@@ -23,12 +27,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
-    networks:
-      - nsft_network_dev
 
   db:
     image: postgres:15
-    container_name: nsft_db_dev
+    container_name: "nsft_db_${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}"
     env_file:
       - .env
     volumes:
@@ -44,12 +46,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - nsft_network_dev
 
   redis:
     image: redis:7-alpine
-    container_name: nsft_redis_dev
+    container_name: "nsft_redis_${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}"
     ports:
       - "6380:6379"
     restart: always
@@ -58,8 +58,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - nsft_network_dev
 
 volumes:
   postgres_data:
@@ -69,6 +67,7 @@ volumes:
       type: none
       o: bind
       device: ./logs
+
 networks:
-  nsft_network_dev:
-    driver: bridge
+  default:
+    name: "nsft_network_${NATH_STANDALONE_FLASK_TEMPLATE_CONTEXT:-dev}"

@@ -34,7 +34,7 @@ def get_database_host(context):
     """
     if context == 'dev':
         # Development environment uses external database specified by DB_IP
-        return os.environ.get('DB_IP', 'nsft_db_dev')
+        return os.environ.get('DB_IP', 'db')
     else:
         # Integration, validation, and prod use the container naming scheme
         return f'nsft_db_{context}'
