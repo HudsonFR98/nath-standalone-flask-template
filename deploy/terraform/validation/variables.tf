@@ -87,7 +87,7 @@ variable "memory_balloon_min_mb" {
     device is present but there is no reclaim range (same as a fresh PVE GUI VM).
   EOT
   type        = number
-  default     = 512
+  default     = 768
 
   validation {
     condition = var.memory_balloon_min_mb >= 32 && (

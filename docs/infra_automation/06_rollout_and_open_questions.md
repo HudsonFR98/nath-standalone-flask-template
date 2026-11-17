@@ -61,7 +61,7 @@ Done in the repo (same jobs stamped per environment, see 04). To switch them on:
 - Pi-hole: nothing to do; records `nsft.integration.nath-server.home` and `nsft.validation.nath-server.home` are created by `allocate_<env>_ip`.
 - GitLab: add the `INTEGRATION_*` and `VALIDATION_*` variables (04). `INTEGRATION_*` and the shared Proxmox/Pi-hole variables must be **unprotected** because integration runs on every branch.
 - Proxmox: capacity for up to three VMs of the default size (2 vCPU, 1 GiB, 16 GiB) at the same time.
-- First master pipeline: integration VM `-01` is created, tested and destroyed; validation VM `-01` is created and deployed; prod infra converges; `update_prod` waits for a click.
+- First master pipeline: integration VM `-01` is created, tested and destroyed; validation VM `-01` is created and deployed; prod jobs (`allocate_prod_ip`, `setup_prod_vm`, `update_prod`) wait for manual clicks.
 - Every later pipeline on a branch costs one integration VM create/destroy cycle (~5–10 min); set `INTEGRATION_KEEP_VM=true` temporarily to debug on the VM.
 
 ## Rollback

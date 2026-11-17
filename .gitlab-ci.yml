@@ -10,7 +10,7 @@ variables:
 #
 #   integration  branch push or MR   create VM -> deploy -> run_tests.py -> destroy VM
 #   validation   branch push or MR   create VM -> deploy (pre-production, no tests)
-#   prod         master only         create VM -> deploy (manual gate)
+#   prod         master only         create VM / FQDN / deploy — all manual
 #
 # Each environment has its own VM (serv-nath-nsft-<env>-NN), Pi-hole record,
 # GitLab Terraform state (<env>-vm) and prefixed CI variables.
@@ -486,13 +486,13 @@ destroy_validation_vm:
   resource_group: validation-infra
 
 # ===========================================================================
-# prod — master only, after validation is deployed; deploy is manual
+# prod — master only, after validation; VM, DNS, and deploy are manual
 # ===========================================================================
 
 allocate_prod_ip:
   extends:
     - .allocate_ip
-    - .rules_master
+    - .rules_master_manual
   stage: prod
   needs:
     - update_validation

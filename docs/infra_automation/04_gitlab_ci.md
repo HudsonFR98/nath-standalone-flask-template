@@ -21,7 +21,7 @@ build_docker
                                                                  │
                                                                  ▼
           master only:
-          allocate_prod_ip ─▶ setup_prod_vm ─▶ update_prod [manual gate]               (destroy_prod_vm: manual)
+          allocate_prod_ip [manual] ─▶ setup_prod_vm [manual] ─▶ update_prod [manual]   (destroy_prod_vm: manual)
 ```
 
 ## Trigger policy
@@ -30,7 +30,7 @@ build_docker
 |---|---|---|---|
 | integration | every branch push and every merge request | automatic | automatic after `test_integration` (also when the tests failed). `INTEGRATION_KEEP_VM=true` → manual |
 | validation | same as integration, after `test_integration` succeeded | automatic | manual |
-| prod | `master` only (`$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`), after `update_validation` | **manual** (`update_prod`) | manual |
+| prod | `master` only (`$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`), after `update_validation` | **manual** (`allocate_prod_ip`, `setup_prod_vm`, `update_prod`) | manual |
 
 A branch that already has an open merge request runs the merge-request pipeline only (`workflow:rules`), so the same push does not build two integration VMs. Jobs with no `rules` are omitted from merge-request pipelines, so every job extends `.rules_branch_and_mr` or `.rules_master`. `destroy_integration_vm` used to use a bare `when: always`, which added it to the merge-request pipeline while `test_integration` (no rules) was left out, and GitLab refused to create the pipeline.
 

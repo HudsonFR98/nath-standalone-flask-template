@@ -23,7 +23,7 @@ Run 1 creates everything. Runs 2..n find the VM and the record already exist and
 |---|---|---|---|
 | `integration` | disposable test instance, "meant to be broken": the app test suite (`run_tests.py`) runs inside its app container (`test_integration`) | every branch push and every merge request | VM created at the start of the pipeline, **destroyed automatically** after the tests (`destroy_integration_vm`); `INTEGRATION_KEEP_VM=true` makes the destroy manual |
 | `validation` | pre-production: identical deployment, no automated tests, for checking a release by hand | every branch push and every merge request, after `test_integration` passed | long-lived; `destroy_validation_vm` is manual |
-| `prod` | production | `master` only, after `update_validation`; `update_prod` is a **manual gate** | long-lived; `destroy_prod_vm` is manual |
+| `prod` | production | `master` only, after `update_validation`; `allocate_prod_ip`, `setup_prod_vm`, and `update_prod` are **manual** | long-lived; `destroy_prod_vm` is manual |
 
 `dev` (local `docker-compose.yml`) is not part of this flow.
 
@@ -65,7 +65,7 @@ The IP pool (`IP_POOL_START`/`IP_POOL_END`, default `.124–.200`) is shared: ea
 | Safety | Terraform plan is inspected: any `delete`/`replace` of the VM fails the job. Destroy is a separate job: automatic for integration, **manual** for validation and prod | A template change must never silently recreate a long-lived VM |
 | VM name | `serv-nath-nsft-<env>-NN`; `NN` kept in Terraform state (`terraform_data`), bumped when a VM is removed and a new one created. Destroy targets the VM only | Naming convention; the counter must outlive the VM and Proxmox forgets deleted VMs. Integration VMs therefore count up (`-01`, `-02`, …) at every pipeline |
 | Integration tests | `test_integration` runs `run_tests.py` **inside the deployed app container** through Ansible (`deploy/ansible/run_tests.yml`) | Tests the image that was actually built and deployed, against a real Postgres, with the integration context; no second test harness in CI |
-| Validation gate | `update_prod` is `when: manual` | A pre-production is only useful if someone looks at it before prod is touched |
+| Validation gate | prod VM, DNS, and deploy jobs are manual | Pre-production must exist before anyone provisions or touches prod |
 | SSH / privileges | Ansible connects as `Nath` with `become` (sudo). Root login stays disabled | Matches template 121 (`ciuser: Nath`) |
 | Passing data between jobs | `dotenv` artifacts with environment-prefixed keys (`INTEGRATION_VM_IP`, `PROD_VM_IP`, …) | Standard GitLab mechanism, visible in job UI; prefixes keep environments apart in one pipeline |
 
