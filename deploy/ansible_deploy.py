@@ -19,6 +19,10 @@ PLAYBOOKS = {
 }
 ACTIONS_NEEDING_IMAGE = ("deploy", "update")
 
+# Unpinned pip installs have pulled ansible-core 2.19.x, which can hit Galaxy
+# KeyError: 'results' (galaxy cache / API). Cap below 2.19 until core is fixed.
+ANSIBLE_CORE_SPEC = "ansible-core>=2.16.0,<2.19.0"
+
 
 def ensure_ansible_installed():
     required_binaries = ["ansible-playbook", "ansible-galaxy"]
@@ -32,7 +36,7 @@ def ensure_ansible_installed():
         file=sys.stderr,
     )
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "ansible-core"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", ANSIBLE_CORE_SPEC])
     except subprocess.CalledProcessError as exc:
         print(f"Unable to install ansible-core: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -45,6 +49,31 @@ def ensure_ansible_installed():
             file=sys.stderr,
         )
         sys.exit(1)
+
+
+def install_ansible_collections():
+    cmd = [
+        "ansible-galaxy",
+        "collection",
+        "install",
+        "-r",
+        "ansible/requirements.yml",
+        "--no-cache",
+    ]
+    last_error = None
+    for attempt in range(1, 4):
+        try:
+            subprocess.check_call(cmd)
+            return
+        except subprocess.CalledProcessError as exc:
+            last_error = exc
+            if attempt < 3:
+                print(
+                    "ansible-galaxy failed (attempt %s/3), retrying..." % attempt,
+                    file=sys.stderr,
+                )
+    print(f"Error installing Ansible collection: {last_error}", file=sys.stderr)
+    sys.exit(1)
 
 
 def main():
@@ -211,12 +240,9 @@ def main():
         cmd.extend(["-e", "reviewer_user_email=%s" % args.reviewer_user_email])
 
     try:
-        subprocess.check_call(["ansible-galaxy", "collection", "install", "-r", "ansible/requirements.yml"])
+        install_ansible_collections()
     except FileNotFoundError:
         print("ansible-galaxy command not found after bootstrap.", file=sys.stderr)
-        sys.exit(1)
-    except subprocess.CalledProcessError as exc:
-        print(f"Error installing Ansible collection: {exc}", file=sys.stderr)
         sys.exit(1)
 
     run_env = os.environ.copy()
