@@ -17,6 +17,10 @@ class NoFreeIpError(InfraError):
     """The pool has no address left that is neither reserved nor alive."""
 
 
+class FixedIpError(InfraError):
+    """A caller-chosen address cannot be assigned to this FQDN."""
+
+
 class PlanGuardError(InfraError):
     """The Terraform plan contains destructive actions on a protected resource."""
 

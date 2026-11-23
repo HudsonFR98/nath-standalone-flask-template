@@ -1,7 +1,7 @@
 import unittest
 
 from ..environment import Environment
-from ..errors import NoFreeIpError
+from ..errors import FixedIpError, NoFreeIpError
 from ..ip_allocator import IpAllocator, IpPool
 from ..pihole_client import DnsHostRecord
 from .fakes import FakePihole, FakeProbe
@@ -60,6 +60,36 @@ class IpAllocatorTests(unittest.TestCase):
     def test_pinned_ip_is_preferred_when_free(self):
         allocation = IpAllocator(FakePihole(), self.pool).allocate(FQDN, pinned_ip="192.168.1.126")
         self.assertEqual(allocation.ip, "192.168.1.126")
+
+    def test_fixed_ip_is_used_outside_the_pool_without_probing(self):
+        probe = FakeProbe(alive=("192.168.1.50",))
+        pihole = FakePihole()
+        allocation = IpAllocator(pihole, self.pool, probe).allocate(FQDN, fixed_ip="192.168.1.50")
+        self.assertEqual(allocation.ip, "192.168.1.50")
+        self.assertFalse(allocation.reused)
+        self.assertEqual(pihole.added, [DnsHostRecord("192.168.1.50", FQDN)])
+        self.assertEqual(probe.probed, [])
+
+    def test_fixed_ip_reuses_matching_record(self):
+        pihole = FakePihole([DnsHostRecord("192.168.1.50", FQDN)])
+        allocation = IpAllocator(pihole, self.pool).allocate(FQDN, fixed_ip="192.168.1.50")
+        self.assertTrue(allocation.reused)
+        self.assertEqual(pihole.added, [])
+        self.assertEqual(pihole.deleted, [])
+
+    def test_fixed_ip_replaces_a_different_record_for_the_same_fqdn(self):
+        previous = DnsHostRecord("192.168.1.130", FQDN)
+        pihole = FakePihole([previous])
+        allocation = IpAllocator(pihole, self.pool).allocate(FQDN, fixed_ip="192.168.1.50")
+        self.assertEqual(allocation.ip, "192.168.1.50")
+        self.assertEqual(pihole.deleted, [previous])
+        self.assertEqual(pihole.added, [DnsHostRecord("192.168.1.50", FQDN)])
+
+    def test_fixed_ip_refuses_an_address_owned_by_another_name(self):
+        pihole = FakePihole([DnsHostRecord("192.168.1.50", "other.nath-server.home")])
+        with self.assertRaises(FixedIpError):
+            IpAllocator(pihole, self.pool).allocate(FQDN, fixed_ip="192.168.1.50")
+        self.assertEqual(pihole.added, [])
 
     def test_pinned_ip_falls_back_to_pool_when_taken(self):
         pihole = FakePihole([DnsHostRecord("192.168.1.126", "busy.nath-server.home")])
