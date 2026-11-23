@@ -1,6 +1,10 @@
 NATH_STANDALONE_FLASK_TEMPLATE
 ============================
 
+Reusable **Flask application template**: authentication and roles, admin UI, REST API tokens, PostgreSQL and Alembic, Redis-backed scheduled tasks, i18n, and Docker Compose / GitLab CI deployment—fork it and build your own features on top.
+
+![Home page on the validation environment](docs/preview-validation.png)
+---
 
 # Technical documentation for the Nath Standalone Flask Template Application
 
