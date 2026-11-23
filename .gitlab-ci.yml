@@ -600,6 +600,12 @@ push_github:
       else
         REF="$CI_COMMIT_BRANCH"
       fi
-      git fetch origin "refs/heads/${REF}:refs/heads/${REF}"
-      git push "https://x-access-token:${GITHUB_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-        "refs/heads/${REF}:refs/heads/${REF}"
+      PUSH_URL="https://x-access-token:${GITHUB_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        git config --global "http.https://${CI_SERVER_HOST}/.sslCAInfo" "$GITLAB_CA_FILE"
+        git fetch origin "refs/heads/${REF}:refs/heads/${REF}"
+        git push "$PUSH_URL" "refs/heads/${REF}:refs/heads/${REF}"
+      else
+        # Branch pipelines already have the branch tip at HEAD (detached checkout).
+        git push "$PUSH_URL" "HEAD:refs/heads/${REF}"
+      fi
