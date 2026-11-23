@@ -17,15 +17,18 @@ variables:
 #
 # Required CI/CD variables (Settings > CI/CD > Variables):
 #   shared:   PROXMOX_VE_ENDPOINT, PROXMOX_VE_API_TOKEN (masked), PROXMOX_VE_INSECURE,
-#             PROXMOX_NODE_NAME, PROXMOX_TEMPLATE_VM_ID, PROXMOX_DATASTORE_ID,
 #             PIHOLE_URL, PIHOLE_APP_PASSWORD (masked), GITLAB_CA_FILE (file),
 #             TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 #             optional: IP_POOL_START, IP_POOL_END, IP_POOL_RESERVED (one pool for all envs)
 #   per env (<ENV> = INTEGRATION | VALIDATION | PROD):
+#             <ENV>_PROXMOX_NODE_NAME, <ENV>_PROXMOX_TEMPLATE_VM_ID, <ENV>_PROXMOX_DATASTORE_ID,
+#             optional: <ENV>_PROXMOX_NETWORK_BRIDGE (default vmbr0 when unset),
+#             optional: <ENV>_GATEWAY (default 192.168.1.1 in Terraform when unset)
 #             <ENV>_VM_FQDN, <ENV>_POSTGRES_USER, <ENV>_POSTGRES_PASSWORD (masked),
 #             <ENV>_POSTGRES_DB, <ENV>_NSFT_DB_NAME, <ENV>_SECRET_KEY (masked),
 #             <ENV>_ADMIN_USER_USERNAME, <ENV>_ADMIN_USER_PASSWORD (masked),
 #             <ENV>_ADMIN_USER_EMAIL, <ENV>_ADMIN_USER_FIRST_NAME, <ENV>_ADMIN_USER_LAST_NAME,
+#             optional: <ENV>_VM_IP (when set, Pi-hole and Terraform use it and do not scan the pool)
 #             optional: <ENV>_REVIEWER_USER_USERNAME, <ENV>_REVIEWER_USER_PASSWORD (masked),
 #                       <ENV>_REVIEWER_USER_EMAIL, <ENV>_REVIEWER_USER_FIRST_NAME, <ENV>_REVIEWER_USER_LAST_NAME
 #                       (both username and password required to bootstrap the reviewer user)
@@ -105,9 +108,6 @@ stages:
     TF_HTTP_RETRY_WAIT_MIN: "5"
     TF_HTTP_USERNAME: gitlab-ci-token
     TF_HTTP_PASSWORD: ${CI_JOB_TOKEN}
-    TF_VAR_node_name: ${PROXMOX_NODE_NAME}
-    TF_VAR_template_vm_id: ${PROXMOX_TEMPLATE_VM_ID}
-    TF_VAR_datastore_id: ${PROXMOX_DATASTORE_ID}
   before_script:
     - apk add --no-cache python3 openssh-client
     - test -n "$ENV_NAME" || { echo "ENV_NAME is not set"; exit 1; }
@@ -122,7 +122,23 @@ stages:
     - export TF_VAR_fqdn="$VM_FQDN"
     # Upper-cased env name used as prefix of the dotenv keys (PROD_VM_IP, INTEGRATION_VM_IP, ...).
     - export ENV_PREFIX=$(printf '%s' "$ENV_NAME" | tr 'a-z-' 'A-Z_')
-    - echo "environment=${ENV_NAME} state=${TF_STATE_NAME} fqdn=${VM_FQDN}"
+    - export TF_VAR_node_name="$(printenv "${ENV_PREFIX}_PROXMOX_NODE_NAME" || true)"
+    - export TF_VAR_template_vm_id="$(printenv "${ENV_PREFIX}_PROXMOX_TEMPLATE_VM_ID" || true)"
+    - export TF_VAR_datastore_id="$(printenv "${ENV_PREFIX}_PROXMOX_DATASTORE_ID" || true)"
+    - |
+      network_bridge="$(printenv "${ENV_PREFIX}_PROXMOX_NETWORK_BRIDGE" || true)"
+      if [ -n "$network_bridge" ]; then
+        export TF_VAR_network_bridge="$network_bridge"
+      fi
+    - |
+      lan_gateway="$(printenv "${ENV_PREFIX}_GATEWAY" || true)"
+      if [ -n "$lan_gateway" ]; then
+        export TF_VAR_gateway="$lan_gateway"
+      fi
+    - test -n "$TF_VAR_node_name" || { echo "CI variable ${ENV_PREFIX}_PROXMOX_NODE_NAME is missing"; exit 1; }
+    - test -n "$TF_VAR_template_vm_id" || { echo "CI variable ${ENV_PREFIX}_PROXMOX_TEMPLATE_VM_ID is missing"; exit 1; }
+    - test -n "$TF_VAR_datastore_id" || { echo "CI variable ${ENV_PREFIX}_PROXMOX_DATASTORE_ID is missing"; exit 1; }
+    - echo "environment=${ENV_NAME} state=${TF_STATE_NAME} fqdn=${VM_FQDN} node=${TF_VAR_node_name} bridge=${TF_VAR_network_bridge:-vmbr0} gateway=${TF_VAR_gateway:-192.168.1.1}"
     # Self-signed GitLab cert (CN=gitlab.nath-server.home). The terraform image
     # does not use the runner host trust store. GITLAB_CA_FILE is a File-type
     # CI variable containing /etc/gitlab/ssl/gitlab.nath-server.home.crt (public
@@ -173,6 +189,7 @@ stages:
       --pool-start "${IP_POOL_START:-}"
       --pool-end "${IP_POOL_END:-}"
       --reserved "${IP_POOL_RESERVED:-}"
+      --fixed-ip "${VM_IP:-}"
       --output infra.env
     - cat infra.env
   artifacts:
@@ -335,6 +352,7 @@ allocate_integration_ip:
   variables:
     ENV_NAME: integration
     VM_FQDN: $INTEGRATION_VM_FQDN
+    VM_IP: $INTEGRATION_VM_IP
   environment:
     name: integration
     action: prepare
@@ -433,6 +451,7 @@ allocate_validation_ip:
   variables:
     ENV_NAME: validation
     VM_FQDN: $VALIDATION_VM_FQDN
+    VM_IP: $VALIDATION_VM_IP
   environment:
     name: validation
     action: prepare
@@ -499,6 +518,7 @@ allocate_prod_ip:
   variables:
     ENV_NAME: prod
     VM_FQDN: $PROD_VM_FQDN
+    VM_IP: $PROD_VM_IP
   environment:
     name: prod
     action: prepare

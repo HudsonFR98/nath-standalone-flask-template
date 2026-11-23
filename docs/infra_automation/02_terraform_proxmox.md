@@ -113,7 +113,7 @@ variable "node_name"        { type = string }              # ASSUMPTION: single 
 variable "template_vm_id"   { type = number }              # Debian 13 cloud-init template VMID
 variable "vm_id"            { type = number  default = null } # let Proxmox pick unless you want a fixed one
 variable "datastore_id"     { type = string  default = "local-lvm" }
-variable "bridge"           { type = string  default = "vmbr0" }
+variable "network_bridge"   { type = string  default = "vmbr0" }
 variable "cloudinit_interface" { type = string default = "sata1" }  # template 121: sata1:…:cloudinit
 variable "os_disk_interface"   { type = string default = "sata0" }  # template 121: sata0 (not scsi0)
 
@@ -182,7 +182,7 @@ resource "proxmox_virtual_environment_vm" "app" {
   }
 
   network_device {
-    bridge = var.bridge
+    bridge = var.network_bridge
   }
 
   initialization {
@@ -422,7 +422,7 @@ Run this on **your Mac**, from the **repository root**, in the **same shell** wh
 Provider plugins and `.terraform/` are written under `deploy/terraform/prod/` on your disk (bind-mounted into the container).
 
 ```bash
-cd ~/Desktop/nath-standalone-flask-template   # your clone path
+cd ~/Desktop/budget-manager   # your clone path
 
 # Shorthand — every terraform subcommand below uses the same env forwarding.
 tf() {

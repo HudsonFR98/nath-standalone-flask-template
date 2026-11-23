@@ -44,6 +44,10 @@ resource "proxmox_virtual_environment_vm" "app" {
     discard      = "on"
   }
 
+  network_device {
+    bridge = var.network_bridge
+  }
+
   initialization {
     datastore_id = var.datastore_id
     interface    = var.cloudinit_interface

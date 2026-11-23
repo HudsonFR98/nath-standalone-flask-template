@@ -45,6 +45,11 @@ Optional extra sources of "used" IPs, if Pi-hole is also your DHCP server: `GET 
 allocate(fqdn, pool=[.124 .. .200]):
     records = pihole.list_hosts()                       # [(ip, domain), ...]
     existing = [ip for ip, domain in records if domain == fqdn]
+    if fixed_ip:                                        # optional <ENV>_VM_IP
+        if another name already owns fixed_ip: fail    # do not scan the pool
+        point fqdn at fixed_ip (replace a different record for this fqdn)
+        return fixed_ip
+
     if existing:
         return existing[0], reused=True                 # idempotent path
 
@@ -136,7 +141,7 @@ export PIHOLE_APP_PASSWORD='<application password>'
 python3 deploy/infra_deploy.py allocate-ip \
     --pihole-url http://192.168.1.105 \
     --fqdn nsft.nath-server.home --pool-start 192.168.1.124 --pool-end 192.168.1.200 \
-    --env prod --pinned-ip "${PROD_VM_IP_PINNED:-}" --output infra.env
+    --env prod --fixed-ip "${PROD_VM_IP:-}" --output infra.env
 # writes infra.env (keys prefixed by --env: INTEGRATION_VM_IP, VALIDATION_VM_IP, PROD_VM_IP):
 #   PROD_VM_IP=192.168.1.124
 #   PROD_VM_FQDN=nsft.nath-server.home

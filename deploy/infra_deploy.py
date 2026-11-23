@@ -77,7 +77,11 @@ class InfraCli:
         )
         probe = NoProbe() if args.no_ping else IcmpProbe()
         with PiholeClient(args.pihole_url, password) as pihole:
-            allocation = IpAllocator(pihole, pool, probe).allocate(args.fqdn, args.pinned_ip or None)
+            allocation = IpAllocator(pihole, pool, probe).allocate(
+                args.fqdn,
+                args.pinned_ip or None,
+                args.fixed_ip or None,
+            )
 
         Path(args.output).write_text(allocation.to_dotenv(env), encoding="utf-8")
         verb = "Reusing" if allocation.reused else "Reserved"
@@ -143,6 +147,11 @@ class InfraCli:
             help="address inside the pool to skip (repeatable or comma-separated)",
         )
         allocate.add_argument("--pinned-ip", default=None, help="preferred address if free")
+        allocate.add_argument(
+            "--fixed-ip",
+            default=None,
+            help="use this address exactly and do not scan the pool (empty = allocate)",
+        )
         allocate.add_argument("--no-ping", action="store_true", help="skip the ICMP liveness probe")
         allocate.add_argument("--output", default="infra.env", help="dotenv file to write")
         allocate.set_defaults(handler=self.cmd_allocate_ip)

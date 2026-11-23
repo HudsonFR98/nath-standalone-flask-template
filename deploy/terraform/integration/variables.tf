@@ -57,6 +57,12 @@ variable "datastore_id" {
   default     = "local-lvm"
 }
 
+variable "network_bridge" {
+  description = "Proxmox Linux bridge attached to the VM NIC (e.g. vmbr0, vmbr1)."
+  type        = string
+  default     = "vmbr0"
+}
+
 # ---------------------------------------------------------------------------
 # Sizing — this root only (integration). The other environments have their own copy.
 # ---------------------------------------------------------------------------

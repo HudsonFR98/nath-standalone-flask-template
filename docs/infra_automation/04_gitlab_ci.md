@@ -34,7 +34,7 @@ build_docker
 
 A branch that already has an open merge request runs the merge-request pipeline only (`workflow:rules`), so the same push does not build two integration VMs. Jobs with no `rules` are omitted from merge-request pipelines, so every job extends `.rules_branch_and_mr` or `.rules_master`. `destroy_integration_vm` used to use a bare `when: always`, which added it to the merge-request pipeline while `test_integration` (no rules) was left out, and GitLab refused to create the pipeline.
 
-Consequence: **integration** and **validation** both run on every branch and merge request. Shared vars (`PROXMOX_*`, `PIHOLE_*`, `GITLAB_CA_FILE`, `TELEGRAM_*`) and all `INTEGRATION_*` / `VALIDATION_*` must **not** be *protected*, or feature-branch pipelines get empty values (e.g. missing `VM_FQDN`). Only `PROD_*` should be protected. Use GitLab environment scope (`integration`, `validation`, `prod`) on per-env secrets when needed.
+Consequence: **integration** and **validation** both run on every branch and merge request. Shared vars (`PROXMOX_VE_*`, `PIHOLE_*`, `GITLAB_CA_FILE`, `TELEGRAM_*`) and all `INTEGRATION_*` / `VALIDATION_*` must **not** be *protected*, or feature-branch pipelines get empty values (e.g. missing `VM_FQDN`). Only `PROD_*` should be protected. Use GitLab environment scope (`integration`, `validation`, `prod`) on per-env secrets when needed.
 
 If `setup_integration_vm` or `update_integration` fails, `test_integration` is skipped and so is `destroy_integration_vm`: the half-provisioned VM stays for inspection and the next pipeline converges it (same FQDN, same IP, plan guard still active).
 
@@ -47,9 +47,6 @@ Shared:
 | `PROXMOX_VE_ENDPOINT` | no | no | `https://<pve-host>:8006/` |
 | `PROXMOX_VE_API_TOKEN` | yes | no | `terraform@pve!ci=<uuid>` |
 | `PROXMOX_VE_INSECURE` | no | no | `true` (self-signed cert) |
-| `PROXMOX_NODE_NAME` | no | no | e.g. `pve` |
-| `PROXMOX_TEMPLATE_VM_ID` | no | no | `121` (`template-ci-debian-13`) |
-| `PROXMOX_DATASTORE_ID` | no | no | e.g. `local-lvm` |
 | `PIHOLE_URL` | no | no | `http://192.168.1.105` |
 | `PIHOLE_APP_PASSWORD` | yes | no | Pi-hole *application password* |
 | `GITLAB_CA_FILE` | no (File) | no | public cert of the self-signed GitLab |
@@ -62,6 +59,12 @@ Per environment, `<ENV>` ∈ {`INTEGRATION`, `VALIDATION`, `PROD`}:
 
 | Variable | Masked | Protected | Value |
 |---|---|---|---|
+| `<ENV>_PROXMOX_NODE_NAME` | no | prod only | Proxmox node for that environment (e.g. `proxmox2`, `nath-server`) |
+| `<ENV>_PROXMOX_TEMPLATE_VM_ID` | no | prod only | cloud-init template VMID on that node |
+| `<ENV>_PROXMOX_DATASTORE_ID` | no | prod only | datastore on that node (e.g. `local-lvm`) |
+| `<ENV>_PROXMOX_NETWORK_BRIDGE` | no | prod only | optional. Proxmox bridge for the VM NIC (`vmbr0`, `vmbr1`, …). Default `vmbr0` when unset |
+| `<ENV>_GATEWAY` | no | prod only | optional. Cloud-init default gateway for the VM. Default `192.168.1.1` in Terraform when unset (set when using another bridge/L3, e.g. `vmbr1` → `10.20.40.1`) |
+| `<ENV>_VM_IP` | no | prod only | optional. When set, Pi-hole and Terraform use this address and do not scan the pool |
 | `<ENV>_VM_FQDN` | no | prod only | FQDNs in `deploy/ansible/inventory.ini` and nginx `server_name` |
 | `<ENV>_VM_GENERATION_SEED` | no | prod only | optional, default `1` |
 | `<ENV>_POSTGRES_USER`, `<ENV>_POSTGRES_PASSWORD`, `<ENV>_POSTGRES_DB`, `<ENV>_NSFT_DB_NAME` | password: yes | prod only | Postgres and app database for that environment |
@@ -85,19 +88,25 @@ The real file uses `extends:` (deep merge) rather than YAML anchors, so per-envi
     TF_ROOT: deploy/terraform/${ENV_NAME}   # integration | validation | prod
     TF_HTTP_USERNAME: gitlab-ci-token
     TF_HTTP_PASSWORD: ${CI_JOB_TOKEN}
-    TF_VAR_node_name: ${PROXMOX_NODE_NAME}
-    TF_VAR_template_vm_id: ${PROXMOX_TEMPLATE_VM_ID}
-    TF_VAR_datastore_id: ${PROXMOX_DATASTORE_ID}
     # ...TF_IN_AUTOMATION, TF_INPUT, lock methods
   before_script:
     - apk add --no-cache python3 openssh-client
+    - export ENV_PREFIX=$(printf '%s' "$ENV_NAME" | tr 'a-z-' 'A-Z_')
+    - export TF_VAR_node_name="$(printenv "${ENV_PREFIX}_PROXMOX_NODE_NAME")"
+    - export TF_VAR_template_vm_id="$(printenv "${ENV_PREFIX}_PROXMOX_TEMPLATE_VM_ID")"
+    - export TF_VAR_datastore_id="$(printenv "${ENV_PREFIX}_PROXMOX_DATASTORE_ID")"
+    - |
+      network_bridge="$(printenv "${ENV_PREFIX}_PROXMOX_NETWORK_BRIDGE" || true)"
+      if [ -n "$network_bridge" ]; then export TF_VAR_network_bridge="$network_bridge"; fi
+    - |
+      lan_gateway="$(printenv "${ENV_PREFIX}_GATEWAY" || true)"
+      if [ -n "$lan_gateway" ]; then export TF_VAR_gateway="$lan_gateway"; fi
     - export TF_STATE_NAME="${ENV_NAME}-vm"                      # integration-vm | validation-vm | prod-vm
     - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
     - export TF_HTTP_LOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
     - export TF_HTTP_UNLOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
     - export TF_VAR_env="$ENV_NAME"
     - export TF_VAR_fqdn="$VM_FQDN"
-    - export ENV_PREFIX=$(printf '%s' "$ENV_NAME" | tr 'a-z-' 'A-Z_')   # dotenv key prefix
     - cd $TF_ROOT && terraform init -input=false -reconfigure
 ```
 
@@ -112,6 +121,7 @@ Everything derived from the environment name is computed in shell from `ENV_NAME
     - python3 deploy/infra_deploy.py allocate-ip
         --env "$ENV_NAME" --fqdn "$VM_FQDN"
         --pool-start "${IP_POOL_START:-}" --pool-end "${IP_POOL_END:-}" --reserved "${IP_POOL_RESERVED:-}"
+        --fixed-ip "${VM_IP:-}"
         --output infra.env
   artifacts:
     reports:
@@ -125,7 +135,7 @@ allocate_prod_ip:
   environment: { name: prod, action: prepare }
 ```
 
-Empty pool arguments fall back to the defaults in `deploy/infra/const.py`.
+Empty pool arguments fall back to the defaults in `deploy/infra/const.py`. `VM_IP` is `$<ENV>_VM_IP`. When that variable is set, the allocator writes that address into Pi-hole and does not scan the pool. When it is empty, the first free address is chosen as before. The dotenv artifact still publishes `<ENV>_VM_IP` for Terraform.
 
 ## Job 2 — `setup_<env>_vm`
 
@@ -211,7 +221,7 @@ test_integration:
   environment: { name: integration, action: prepare }
 ```
 
-`--action test` runs `deploy/ansible/run_tests.yml`: `docker exec` of `nath_standalone_flask_template/tests/run_tests.py` inside `nsft_app_integration`, with the container's own environment (integration context and its Postgres). The suite is pytest. The job fails when the suite fails, which blocks `validation` and `prod`. `--test-labels` is forwarded as extra pytest arguments when set.
+`--action test` runs `deploy/ansible/run_tests.yml`: `docker exec` of `budget_manager/tests/run_tests.py` inside `nsft_app_integration`, with the container's own environment (integration context and its Postgres). The suite is pytest. The job fails when the suite fails, which blocks `validation` and `prod`. `--test-labels` is forwarded as extra pytest arguments when set.
 
 The infra unit tests (`deploy/infra/tests`) are not part of this job; they are run by developers (`cd deploy && python3 -m unittest discover -s infra/tests -t .`).
 

@@ -15,7 +15,7 @@ from typing import Iterable, Iterator, Protocol
 
 from . import const
 from .environment import Environment
-from .errors import NoFreeIpError
+from .errors import FixedIpError, NoFreeIpError
 from .pihole_client import DnsHostRecord, DnsHostsBackend
 
 
@@ -126,12 +126,15 @@ class Allocation:
 class IpAllocator:
     """Allocate / release an address for a given FQDN.
 
-    Resolution order in :meth:`allocate`:
+    Resolution order in :meth:`allocate` when ``fixed_ip`` is empty:
 
     1. A record for ``fqdn`` already exists -> reuse it (idempotent re-runs).
     2. ``pinned_ip`` is given and free -> reserve it.
     3. First address of the pool that has no record, is not reserved and does
        not answer the liveness probe -> reserve it.
+
+    When ``fixed_ip`` is set, the pool is not scanned. The FQDN is pointed at
+    that address, or the call fails if another name already owns it.
     """
 
     def __init__(
@@ -144,8 +147,16 @@ class IpAllocator:
         self._pool = pool
         self._probe = probe or NoProbe()
 
-    def allocate(self, fqdn: str, pinned_ip: str | None = None) -> Allocation:
+    def allocate(
+        self,
+        fqdn: str,
+        pinned_ip: str | None = None,
+        fixed_ip: str | None = None,
+    ) -> Allocation:
         records = self._backend.list_hosts()
+        if fixed_ip:
+            return self._assign_fixed(records, fqdn, fixed_ip)
+
         existing = self._find_by_fqdn(records, fqdn)
         if existing is not None:
             return Allocation(ip=existing.ip, fqdn=fqdn, reused=True)
@@ -168,6 +179,24 @@ class IpAllocator:
         raise NoFreeIpError(
             f"No free address for {fqdn} in {self._pool.start}-{self._pool.end}"
         )
+
+    def _assign_fixed(self, records: Iterable[DnsHostRecord], fqdn: str, fixed_ip: str) -> Allocation:
+        """Point ``fqdn`` at ``fixed_ip`` without scanning the pool."""
+        ip = str(ipaddress.IPv4Address(fixed_ip))
+        wanted = fqdn.lower().rstrip(".")
+        for record in records:
+            if record.ip == ip and record.domain.lower().rstrip(".") != wanted:
+                raise FixedIpError(
+                    f"{ip} is already used by {record.domain}; not assigning it to {fqdn}"
+                )
+
+        existing = self._find_by_fqdn(records, fqdn)
+        if existing is not None and existing.ip == ip:
+            return Allocation(ip=ip, fqdn=fqdn, reused=True)
+        if existing is not None:
+            self._backend.delete_host(existing)
+        self._backend.add_host(DnsHostRecord(ip=ip, domain=fqdn))
+        return Allocation(ip=ip, fqdn=fqdn, reused=False)
 
     def release(self, fqdn: str) -> DnsHostRecord | None:
         """Remove the record for ``fqdn``. Returns it, or ``None`` if absent."""
